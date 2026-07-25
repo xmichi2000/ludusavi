@@ -54,6 +54,7 @@ pub enum Event {
     BackupFilterIgnoredPath(EditAction),
     BackupFilterIgnoredRegistry(EditAction),
     BlacklistedGame(EditAction),
+    EmulatorSaveTemplate(EditAction),
     GameListEntryEnabled {
         name: String,
         enabled: bool,
@@ -1157,6 +1158,10 @@ pub struct Scan {
     pub redirect_wine: bool,
     /// Also check well-known emulator save locations (Goldberg, CODEX, etc.) for games with a Steam ID.
     pub emulator_saves: bool,
+    /// Extra save path templates (globs) to check for every game with a Steam ID.
+    /// Supported placeholders: `<steamId>`, `<winAppData>`, `<winLocalAppData>`,
+    /// `<winDocuments>`, `<winPublic>`, `<winProgramData>`, `<home>`.
+    pub emulator_save_templates: Vec<String>,
 }
 
 impl Default for Scan {
@@ -1167,6 +1172,7 @@ impl Default for Scan {
             show_unscanned_games: true,
             redirect_wine: false,
             emulator_saves: true,
+            emulator_save_templates: vec![],
         }
     }
 }
@@ -1416,6 +1422,7 @@ impl ResourceFile for Config {
         }
         self.custom_games.retain(|x| !x.is_empty());
         self.blacklisted_games.retain(|x| !x.trim().is_empty());
+        self.scan.emulator_save_templates.retain(|x| !x.trim().is_empty());
 
         if self.apps.rclone.path.raw().is_empty() {
             self.apps.rclone.path = App::default_rclone().path;
@@ -2302,6 +2309,7 @@ mod tests {
                     show_unscanned_games: false,
                     redirect_wine: false,
                     emulator_saves: false,
+                    emulator_save_templates: vec![],
                 },
                 cloud: Cloud {
                     remote: Some(Remote::GoogleDrive {
@@ -2434,6 +2442,7 @@ scan:
   showUnscannedGames: false
   redirectWine: false
   emulatorSaves: false
+  emulatorSaveTemplates: []
 cloud:
   remote:
     GoogleDrive:
@@ -2533,6 +2542,7 @@ blacklistedGames:
                     show_unscanned_games: false,
                     redirect_wine: false,
                     emulator_saves: false,
+                    emulator_save_templates: vec![],
                 },
                 cloud: Cloud {
                     remote: Some(Remote::GoogleDrive {

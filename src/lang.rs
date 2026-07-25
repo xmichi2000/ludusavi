@@ -30,6 +30,10 @@ const MESSAGE: &str = "message";
 const APP: &str = "app";
 const GAME: &str = "game";
 const VERSION: &str = "version";
+const ID: &str = "id";
+const FILES: &str = "files";
+const SIZE: &str = "size";
+const MODIFIED: &str = "modified";
 
 pub const TRANSLATOR: Translator = Translator {};
 pub const ADD_SYMBOL: &str = "+";
@@ -481,6 +485,36 @@ impl Translator {
         let mut args = FluentArgs::new();
         args.set(GAME, game);
         translate_args("cli-blacklist-entry-not-found", &args)
+    }
+
+    pub fn cli_find_unknown_nothing_found(&self) -> String {
+        translate("cli-find-unknown-nothing-found")
+    }
+
+    pub fn cli_find_unknown_candidate(&self, path: &str, files: u64, size: &str, modified: &str) -> String {
+        let mut args = FluentArgs::new();
+        args.set(PATH, path);
+        args.set(FILES, files);
+        args.set(SIZE, size);
+        args.set(MODIFIED, modified);
+        translate_args("cli-find-unknown-candidate", &args)
+    }
+
+    pub fn cli_find_unknown_steam_id(&self, id: u32) -> String {
+        let mut args = FluentArgs::new();
+        args.set(ID, id);
+        translate_args("cli-find-unknown-steam-id", &args)
+    }
+
+    pub fn cli_find_unknown_adopt_hint(&self) -> String {
+        translate("cli-find-unknown-adopt-hint")
+    }
+
+    pub fn cli_find_unknown_adopted(&self, game: &str, path: &str) -> String {
+        let mut args = FluentArgs::new();
+        args.set(GAME, game);
+        args.set(PATH, path);
+        translate_args("cli-find-unknown-adopted", &args)
     }
 
     pub fn cli_unable_to_request_confirmation(&self) -> String {
@@ -1184,6 +1218,10 @@ impl Translator {
 
     pub fn blacklisted_games_label(&self) -> String {
         translate("field-blacklisted-games")
+    }
+
+    pub fn emulator_save_templates_label(&self) -> String {
+        translate("field-emulator-save-templates")
     }
 
     pub fn redirects_label(&self) -> String {

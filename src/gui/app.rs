@@ -213,6 +213,16 @@ impl App {
             .collect();
     }
 
+    fn sync_emulator_save_templates(&mut self) {
+        self.config.scan.emulator_save_templates = self
+            .text_histories
+            .emulator_save_templates
+            .iter()
+            .map(|x| x.current())
+            .filter(|x| !x.trim().is_empty())
+            .collect();
+    }
+
     fn save_cache(&mut self) {
         self.pending_save.insert(SaveKind::Cache, Instant::now());
     }
@@ -546,6 +556,7 @@ impl App {
                                     &steam_shortcuts,
                                     config.backup.only_constructive,
                                     config.scan.emulator_saves,
+                                    &config.scan.emulator_save_templates,
                                 );
                                 if !config.is_game_enabled_for_backup(&key) && !single {
                                     return (Some(scan_info), None);
@@ -1855,6 +1866,24 @@ impl App {
                         }
                         self.sync_blacklisted_games();
                     }
+                    config::Event::EmulatorSaveTemplate(action) => {
+                        match action {
+                            EditAction::Add => {
+                                self.text_histories.emulator_save_templates.push(Default::default());
+                            }
+                            EditAction::Change(index, value) => {
+                                self.text_histories.emulator_save_templates[index].push(&value);
+                            }
+                            EditAction::Remove(index) => {
+                                self.text_histories.emulator_save_templates.remove(index);
+                            }
+                            EditAction::Move(index, direction) => {
+                                let offset = direction.shift(index);
+                                self.text_histories.emulator_save_templates.swap(index, offset);
+                            }
+                        }
+                        self.sync_emulator_save_templates();
+                    }
                     config::Event::GameListEntryEnabled {
                         name,
                         enabled,
@@ -2590,6 +2619,10 @@ impl App {
                     UndoSubject::BlacklistedGame(i) => {
                         self.text_histories.blacklisted_games[i].apply(shortcut);
                         self.sync_blacklisted_games();
+                    }
+                    UndoSubject::EmulatorSaveTemplate(i) => {
+                        self.text_histories.emulator_save_templates[i].apply(shortcut);
+                        self.sync_emulator_save_templates();
                     }
                     UndoSubject::RcloneExecutable => shortcut.apply_to_strict_path_field(
                         &mut self.config.apps.rclone.path,

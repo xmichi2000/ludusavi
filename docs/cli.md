@@ -17,6 +17,8 @@ Commands:
           Show backups
   find
           Find game titles
+  find-unknown
+          Find save-like folders that don't match any known game
   manifest
           Options for Ludusavi's data set
   config
@@ -330,6 +332,36 @@ Options:
 
       --partial
           Select games that have some saves disabled
+
+  -h, --help
+          Print help (see a summary with '-h')
+```
+
+## `find-unknown --help`
+```
+Find save-like folders that don't match any known game
+
+This looks one level deep inside common save locations (Documents, Documents/My Games, Saved Games,
+the AppData folders, Public Documents, well-known emulator save locations, and your configured
+roots) and reports child folders that don't match any known game, so that you can catch saves which
+would otherwise slip through (e.g., from games without a manifest entry or from unknown Steam
+emulators).
+
+Candidates are sorted by their last modified time, most recent first. Folders inside emulator save
+locations are matched by Steam ID, and unknown IDs are labeled as such.
+
+This command automatically updates the manifest if necessary.
+
+Usage: ludusavi.exe find-unknown [OPTIONS]
+
+Options:
+      --adopt <ADOPT>
+          Adopt a folder as a custom game so that Ludusavi will back it up. The path is added to the
+          custom game's files. If a custom game with the same name already exists, the path is added
+          to that entry instead. Requires `--name`
+
+      --name <NAME>
+          Title to use for the custom game adopted via `--adopt`
 
   -h, --help
           Print help (see a summary with '-h')

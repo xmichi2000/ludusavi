@@ -418,6 +418,33 @@ pub enum Subcommand {
         #[clap()]
         names: Vec<String>,
     },
+    /// Find save-like folders that don't match any known game
+    ///
+    /// This looks one level deep inside common save locations
+    /// (Documents, Documents/My Games, Saved Games, the AppData folders,
+    /// Public Documents, well-known emulator save locations, and your configured roots)
+    /// and reports child folders that don't match any known game,
+    /// so that you can catch saves which would otherwise slip through
+    /// (e.g., from games without a manifest entry or from unknown Steam emulators).
+    ///
+    /// Candidates are sorted by their last modified time, most recent first.
+    /// Folders inside emulator save locations are matched by Steam ID,
+    /// and unknown IDs are labeled as such.
+    ///
+    /// This command automatically updates the manifest if necessary.
+    FindUnknown {
+        /// Adopt a folder as a custom game so that Ludusavi will back it up.
+        /// The path is added to the custom game's files.
+        /// If a custom game with the same name already exists,
+        /// the path is added to that entry instead.
+        /// Requires `--name`.
+        #[clap(long, value_parser = parse_strict_path, requires = "name")]
+        adopt: Option<StrictPath>,
+
+        /// Title to use for the custom game adopted via `--adopt`.
+        #[clap(long, requires = "adopt")]
+        name: Option<String>,
+    },
     /// Options for Ludusavi's data set.
     Manifest {
         #[clap(subcommand)]
@@ -572,6 +599,7 @@ impl Subcommand {
             Self::Complete { .. } => false,
             Self::Backups { .. } => false,
             Self::Find { .. } => false,
+            Self::FindUnknown { .. } => false,
             Self::Manifest { .. } => false,
             Self::Config { .. } => false,
             Self::Cloud { sub } => sub.force(),
@@ -589,6 +617,7 @@ impl Subcommand {
             Self::Complete { .. } => false,
             Self::Backups { .. } => false,
             Self::Find { .. } => false,
+            Self::FindUnknown { .. } => false,
             Self::Manifest { .. } => false,
             Self::Config { .. } => false,
             Self::Cloud { sub } => sub.gui(),

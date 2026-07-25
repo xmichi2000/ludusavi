@@ -20,7 +20,12 @@ use crate::{
         unregister_sigint,
     },
     report::{self, Reporter, report_cloud_changes},
-    resource::{ResourceFile, SaveableResourceFile, cache::Cache, config::Config, manifest::Manifest},
+    resource::{
+        ResourceFile, SaveableResourceFile,
+        cache::Cache,
+        config::{Config, CustomGame},
+        manifest::Manifest,
+    },
     scan::{
         BackupId, DuplicateDetector, Launchers, OperationStepDecision, ScanKind, SteamShortcuts, TitleFinder,
         TitleQuery, layout::BackupLayout, prepare_backup_target, scan_game_for_backup, semantic,
@@ -132,6 +137,244 @@ pub fn evaluate_games(
     }
 
     Ok(valid.into_iter().collect())
+}
+
+/// A save-like folder that doesn't match any known game.
+struct UnknownSaveCandidate {
+    path: StrictPath,
+    /// Set when the folder sits in an emulator save location,
+    /// but its Steam ID doesn't match any known game.
+    unknown_steam_id: Option<u32>,
+    files: u64,
+    bytes: u64,
+    modified: Option<chrono::DateTime<chrono::Local>>,
+}
+
+/// Folder names that are known to contain non-game data.
+const FIND_UNKNOWN_NOISE: &[&str] = &[
+    "7-Zip",
+    "Adobe",
+    "Comms",
+    "Custom Office Templates",
+    "Discord",
+    "Docker",
+    "Downloaded Installers",
+    "EA",
+    "Epic",
+    "Epic Games",
+    "GOG.com",
+    "Google",
+    "JetBrains",
+    "Microsoft",
+    "Mozilla",
+    "My Games",
+    "Notepad++",
+    "npm",
+    "NVIDIA",
+    "NVIDIA Corporation",
+    "OpenVPN",
+    "Origin",
+    "Packages",
+    "pip",
+    "PowerShell",
+    "Python",
+    "Slack",
+    "Spotify",
+    "Steam",
+    "TeamViewer",
+    "Temp",
+    "Ubisoft",
+    "users",
+    "VLC",
+    "WindowsPowerShell",
+    "WinRAR",
+    "Zoom",
+];
+
+/// Folder name prefixes that are known to contain non-game data.
+const FIND_UNKNOWN_NOISE_PREFIXES: &[&str] = &["OBS", "Visual Studio"];
+
+fn find_unknown_noise(name: &str) -> bool {
+    FIND_UNKNOWN_NOISE.iter().any(|x| x.eq_ignore_ascii_case(name))
+        || FIND_UNKNOWN_NOISE_PREFIXES
+            .iter()
+            .any(|x| name.to_lowercase().starts_with(&x.to_lowercase()))
+}
+
+fn find_unknown_hidden(path: &StrictPath) -> bool {
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::fs::MetadataExt;
+        const HIDDEN: u32 = 0x2;
+        const SYSTEM: u32 = 0x4;
+
+        if let Ok(metadata) = path.metadata()
+            && metadata.file_attributes() & (HIDDEN | SYSTEM) != 0
+        {
+            return true;
+        }
+    }
+
+    path.leaf().map(|x| x.starts_with('.')).unwrap_or(false)
+}
+
+/// File count, total size, and latest modification time of a folder's content,
+/// along with whether the only content is a `desktop.ini` file.
+fn find_unknown_stats(path: &StrictPath) -> (u64, u64, Option<std::time::SystemTime>, bool) {
+    let mut files = 0;
+    let mut bytes = 0;
+    let mut modified: Option<std::time::SystemTime> = None;
+    let mut only_desktop_ini = true;
+
+    let Ok(base) = path.as_std_path_buf() else {
+        return (files, bytes, modified, only_desktop_ini);
+    };
+
+    for entry in walkdir::WalkDir::new(base)
+        .max_depth(5)
+        .follow_links(false)
+        .into_iter()
+        .flatten()
+    {
+        if !entry.file_type().is_file() {
+            continue;
+        }
+        files += 1;
+        if !entry.file_name().to_string_lossy().eq_ignore_ascii_case("desktop.ini") {
+            only_desktop_ini = false;
+        }
+        if let Ok(metadata) = entry.metadata() {
+            bytes += metadata.len();
+            if let Ok(time) = metadata.modified()
+                && modified.map(|old| time > old).unwrap_or(true)
+            {
+                modified = Some(time);
+            }
+        }
+    }
+
+    (files, bytes, modified, only_desktop_ini)
+}
+
+/// Look one level deep inside common save locations
+/// and report child folders that don't match any known game.
+fn find_unknown_saves(config: &Config, title_finder: &TitleFinder) -> Vec<UnknownSaveCandidate> {
+    use crate::path::CommonPath;
+
+    // Each surface is a folder whose children we inspect,
+    // plus whether its children are named after Steam app IDs.
+    let mut surfaces: Vec<(StrictPath, bool)> = vec![];
+
+    if let Some(documents) = CommonPath::Document.get() {
+        surfaces.push((StrictPath::new(documents), false));
+        surfaces.push((StrictPath::new(documents).joined("My Games"), false));
+    }
+    for base in [
+        CommonPath::SavedGames,
+        CommonPath::Data,
+        CommonPath::DataLocal,
+        CommonPath::DataLocalLow,
+    ] {
+        if let Some(path) = base.get() {
+            surfaces.push((StrictPath::new(path), false));
+        }
+    }
+    if let Some(public) = CommonPath::Public.get() {
+        surfaces.push((StrictPath::new(public).joined("Documents"), false));
+    }
+    for parent in crate::scan::emulator_save_location_parents() {
+        for globbed in StrictPath::new(parent).glob() {
+            surfaces.push((globbed, true));
+        }
+    }
+    for root in config.expanded_roots() {
+        surfaces.push((root.games_path(), false));
+    }
+
+    let emulator_folders = crate::scan::emulator_save_location_names();
+
+    let mut checked = std::collections::HashSet::<String>::new();
+    let mut candidates = vec![];
+
+    for (surface, emulator) in surfaces {
+        let Ok(base) = surface.as_std_path_buf() else {
+            continue;
+        };
+
+        for entry in walkdir::WalkDir::new(base)
+            .min_depth(1)
+            .max_depth(1)
+            .follow_links(false)
+            .into_iter()
+            .flatten()
+        {
+            if !entry.file_type().is_dir() {
+                continue;
+            }
+
+            let child = StrictPath::new(crate::path::render_pathbuf(entry.path()));
+            let Some(name) = child.leaf() else {
+                continue;
+            };
+            if !checked.insert(child.render().to_lowercase()) {
+                continue;
+            }
+            if find_unknown_hidden(&child)
+                || find_unknown_noise(&name)
+                || emulator_folders.iter().any(|x| x.eq_ignore_ascii_case(&name))
+                || config.is_game_blacklisted(&name)
+            {
+                continue;
+            }
+
+            let mut unknown_steam_id = None;
+            if emulator && let Ok(id) = name.parse::<u32>() {
+                let known = title_finder
+                    .find_one(TitleQuery {
+                        steam_id: Some(id),
+                        ..Default::default()
+                    })
+                    .is_some();
+                if known {
+                    continue;
+                }
+                unknown_steam_id = Some(id);
+            } else {
+                let known = title_finder
+                    .find_one(TitleQuery {
+                        names: vec![name.clone()],
+                        normalized: true,
+                        fuzzy: true,
+                        ..Default::default()
+                    })
+                    .is_some();
+                if known {
+                    continue;
+                }
+            }
+
+            let (files, bytes, modified, only_desktop_ini) = find_unknown_stats(&child);
+            if files == 0 || only_desktop_ini {
+                continue;
+            }
+
+            candidates.push(UnknownSaveCandidate {
+                path: child,
+                unknown_steam_id,
+                files,
+                bytes,
+                modified: modified.map(chrono::DateTime::<chrono::Local>::from),
+            });
+        }
+    }
+
+    // Recently modified folders are the most likely to be active saves.
+    candidates.sort_by(|a, b| {
+        b.modified
+            .cmp(&a.modified)
+            .then_with(|| a.path.render().cmp(&b.path.render()))
+    });
+    candidates
 }
 
 pub fn parse() -> Result<Cli, clap::Error> {
@@ -322,6 +565,7 @@ pub fn run(sub: Subcommand, no_manifest_update: bool, try_manifest_update: bool)
                     &steam_shortcuts,
                     config.backup.only_constructive,
                     config.scan.emulator_saves,
+                    &config.scan.emulator_save_templates,
                 );
                 let ignored = !&config.is_game_enabled_for_backup(name) && !games_specified && !include_disabled;
                 let decision = if ignored {
@@ -855,6 +1099,62 @@ pub fn run(sub: Subcommand, no_manifest_update: bool, try_manifest_update: bool)
 
             reporter.print(&restore_dir);
         }
+        Subcommand::FindUnknown { adopt, name } => match (adopt, name) {
+            (Some(adopt), Some(name)) => {
+                let path = adopt.render();
+
+                match config
+                    .custom_games
+                    .iter_mut()
+                    .find(|x| x.name == name && x.alias.is_none())
+                {
+                    Some(existing) => {
+                        if !existing.files.contains(&path) {
+                            existing.files.push(path.clone());
+                        }
+                    }
+                    None => {
+                        config.custom_games.push(CustomGame {
+                            name: name.clone(),
+                            files: vec![path.clone()],
+                            ..Default::default()
+                        });
+                    }
+                }
+
+                config.save();
+                println!("{}", TRANSLATOR.cli_find_unknown_adopted(&name, &path));
+            }
+            _ => {
+                let manifest = load_manifest(&config, &mut cache, no_manifest_update, try_manifest_update)?;
+                let layout = BackupLayout::new(config.restore.path.clone());
+                let title_finder = TitleFinder::new(&config, &manifest, layout.restorable_game_set());
+
+                let candidates = find_unknown_saves(&config, &title_finder);
+                if candidates.is_empty() {
+                    println!("{}", TRANSLATOR.cli_find_unknown_nothing_found());
+                } else {
+                    for candidate in candidates {
+                        let modified = candidate
+                            .modified
+                            .map(|x| x.format("%Y-%m-%d").to_string())
+                            .unwrap_or_else(|| "?".to_string());
+                        let mut line = TRANSLATOR.cli_find_unknown_candidate(
+                            &candidate.path.render(),
+                            candidate.files,
+                            &TRANSLATOR.adjusted_size(candidate.bytes),
+                            &modified,
+                        );
+                        if let Some(id) = candidate.unknown_steam_id {
+                            line = format!("{line} [{}]", TRANSLATOR.cli_find_unknown_steam_id(id));
+                        }
+                        println!("{line}");
+                    }
+                    println!();
+                    println!("{}", TRANSLATOR.cli_find_unknown_adopt_hint());
+                }
+            }
+        },
         Subcommand::Manifest { sub: manifest_sub } => match manifest_sub {
             ManifestSubcommand::Show { api } => {
                 let manifest = load_manifest(&config, &mut cache, true, false).unwrap_or_default();

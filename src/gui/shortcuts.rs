@@ -235,6 +235,7 @@ pub struct TextHistories {
     pub backup_filter_ignored_paths: Vec<TextHistory>,
     pub backup_filter_ignored_registry: Vec<TextHistory>,
     pub blacklisted_games: Vec<TextHistory>,
+    pub emulator_save_templates: Vec<TextHistory>,
     pub rclone_executable: TextHistory,
     pub rclone_arguments: TextHistory,
     pub cloud_remote_id: TextHistory,
@@ -289,6 +290,10 @@ impl TextHistories {
 
         for x in &config.blacklisted_games {
             histories.blacklisted_games.push(TextHistory::raw(x));
+        }
+
+        for x in &config.scan.emulator_save_templates {
+            histories.emulator_save_templates.push(TextHistory::raw(x));
         }
 
         if let Some(Remote::Custom { id }) = &config.cloud.remote {
@@ -371,6 +376,11 @@ impl TextHistories {
                 .map(|x| x.current())
                 .unwrap_or_default(),
             UndoSubject::BlacklistedGame(i) => self.blacklisted_games.get(*i).map(|x| x.current()).unwrap_or_default(),
+            UndoSubject::EmulatorSaveTemplate(i) => self
+                .emulator_save_templates
+                .get(*i)
+                .map(|x| x.current())
+                .unwrap_or_default(),
             UndoSubject::RcloneExecutable => self.rclone_executable.current(),
             UndoSubject::RcloneArguments => self.rclone_arguments.current(),
             UndoSubject::CloudRemoteId => self.cloud_remote_id.current(),
@@ -439,6 +449,9 @@ impl TextHistories {
             UndoSubject::BlacklistedGame(i) => Box::new(Message::config(move |value| {
                 config::Event::BlacklistedGame(EditAction::Change(i, value))
             })),
+            UndoSubject::EmulatorSaveTemplate(i) => Box::new(Message::config(move |value| {
+                config::Event::EmulatorSaveTemplate(EditAction::Change(i, value))
+            })),
             UndoSubject::RcloneExecutable => Box::new(Message::config(config::Event::RcloneExecutable)),
             UndoSubject::RcloneArguments => Box::new(Message::config(config::Event::RcloneArguments)),
             UndoSubject::CloudRemoteId => Box::new(Message::config(config::Event::CloudRemoteId)),
@@ -476,6 +489,11 @@ impl TextHistories {
             UndoSubject::BackupFilterIgnoredPath(_) => "".to_string(),
             UndoSubject::BackupFilterIgnoredRegistry(_) => "".to_string(),
             UndoSubject::BlacklistedGame(_) => TRANSLATOR.custom_game_name_placeholder(),
+            UndoSubject::EmulatorSaveTemplate(_) => format!(
+                "{}/*/{}",
+                crate::resource::manifest::placeholder::WIN_DOCUMENTS,
+                crate::scan::TEMPLATE_STEAM_ID
+            ),
             UndoSubject::RcloneExecutable => TRANSLATOR.executable_label(),
             UndoSubject::RcloneArguments => TRANSLATOR.arguments_label(),
             UndoSubject::CloudRemoteId => "".to_string(),
@@ -505,6 +523,7 @@ impl TextHistories {
             | UndoSubject::CustomGamesSearchGameName
             | UndoSubject::CustomGameRegistry(_, _)
             | UndoSubject::BackupFilterIgnoredRegistry(_)
+            | UndoSubject::EmulatorSaveTemplate(_)
             | UndoSubject::RcloneArguments
             | UndoSubject::CloudRemoteId
             | UndoSubject::CloudPath

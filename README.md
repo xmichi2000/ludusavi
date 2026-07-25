@@ -94,6 +94,7 @@ Detailed help documentation is available for several topics.
 * [Roots](/docs/help/roots.md)
 * [Selective scanning](/docs/help/selective-scanning.md)
 * [Transfer between operating systems](/docs/help/transfer-between-operating-systems.md)
+* [Unknown saves](/docs/help/find-unknown.md)
 
 ### Interfaces
 * [Application folder](/docs/help/application-folder.md)

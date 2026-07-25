@@ -423,6 +423,13 @@ pub fn other<'a>(
                                     config.scan.emulator_saves,
                                     Message::config(config::Event::EmulatorSaves),
                                 ))
+                                .push(
+                                    Column::new()
+                                        .spacing(5)
+                                        .padding(padding::left(35))
+                                        .push(text(TRANSLATOR.emulator_save_templates_label()))
+                                        .push(editor::emulator_save_templates(histories)),
+                                )
                                 .push(checkbox(
                                     TRANSLATOR.field(&TRANSLATOR.explanation_for_exclude_cloud_games()),
                                     config.backup.filter.cloud.exclude,

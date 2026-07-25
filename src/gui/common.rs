@@ -713,6 +713,7 @@ pub enum UndoSubject {
     BackupFilterIgnoredPath(usize),
     BackupFilterIgnoredRegistry(usize),
     BlacklistedGame(usize),
+    EmulatorSaveTemplate(usize),
     RcloneExecutable,
     RcloneArguments,
     CloudRemoteId,
@@ -743,6 +744,7 @@ impl UndoSubject {
             | UndoSubject::BackupFilterIgnoredPath(_)
             | UndoSubject::BackupFilterIgnoredRegistry(_)
             | UndoSubject::BlacklistedGame(_)
+            | UndoSubject::EmulatorSaveTemplate(_)
             | UndoSubject::RcloneExecutable
             | UndoSubject::RcloneArguments
             | UndoSubject::CloudRemoteId

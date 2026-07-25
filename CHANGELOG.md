@@ -7,10 +7,24 @@
     the "blacklisted games" section on the "other" screen,
     or the CLI's `config blacklist` command.
   * For games with a Steam ID, Ludusavi now also checks well-known emulator save locations
-    (Goldberg/GSE, SmartSteamEmu, CODEX, RUNE, OnlineFix, EMPRESS),
+    (Goldberg/GSE, SmartSteamEmu, CODEX, RUNE, OnlineFix, EMPRESS,
+    CPY, SKIDROW, Tenoke, FLT, PLAZA, DARKSiDERS, RLD!,
+    and the classic `C:/ProgramData/Steam/<user>/<appid>` layout),
     so that saves from emulator-based installations are backed up and restored as well.
     You can turn this off with the "check emulator save locations" option on the "other" screen
     (`scan.emulatorSaves` in the config file).
+  * You can also define your own emulator save path templates,
+    which are checked for every game with a Steam ID.
+    Configure them in the "custom emulator save paths" list on the "other" screen
+    (`scan.emulatorSaveTemplates` in the config file).
+    Supported placeholders: `<steamId>`, `<winAppData>`, `<winLocalAppData>`,
+    `<winDocuments>`, `<winPublic>`, `<winProgramData>`, `<home>`.
+  * CLI: The new `find-unknown` command scans common save locations
+    (Documents, Saved Games, AppData, emulator save folders, and your roots)
+    and reports save-like folders that don't match any known game,
+    so that nothing slips through the cracks.
+    You can register a found folder as a custom game
+    with the `--adopt` and `--name` options.
   * Ludusavi can now translate native Windows paths into Wine prefixes and vice versa.
     During a scan, these will appear like any other redirected path.
     This is supported for Wine specifically, not any other native Linux paths.

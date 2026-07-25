@@ -112,6 +112,7 @@ properties:
   scan:
     default:
       emulatorSaves: true
+      emulatorSaveTemplates: []
       redirectWine: false
       showDeselectedGames: true
       showUnchangedGames: true
@@ -868,6 +869,12 @@ definitions:
         description: "Also check well-known emulator save locations (Goldberg, CODEX, etc.) for games with a Steam ID."
         default: true
         type: boolean
+      emulatorSaveTemplates:
+        description: "Extra save path templates (globs) to check for every game with a Steam ID. Supported placeholders: `<steamId>`, `<winAppData>`, `<winLocalAppData>`, `<winDocuments>`, `<winPublic>`, `<winProgramData>`, `<home>`."
+        default: []
+        type: array
+        items:
+          type: string
       redirectWine:
         description: Generate best-effort Windows/Wine redirects during scans.
         default: false

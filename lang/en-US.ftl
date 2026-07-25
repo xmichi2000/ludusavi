@@ -15,6 +15,14 @@ cli-backup-id-with-multiple-games = Cannot specify backup ID when restoring mult
 cli-invalid-backup-id = Invalid backup ID.
 cli-blacklist-unrecognized-game = No info for this game, but blacklisting it anyway: {$game}
 cli-blacklist-entry-not-found = Not on the blacklist: {$game}
+cli-find-unknown-nothing-found = No unknown save folders found.
+# One line per candidate folder reported by the `find-unknown` command.
+cli-find-unknown-candidate = {$path} [files: {$files}, size: {$size}, modified: {$modified}]
+# This labels a folder inside a known emulator save location
+# whose Steam ID doesn't match any known game.
+cli-find-unknown-steam-id = unknown Steam ID: {$id}
+cli-find-unknown-adopt-hint = To back up one of these folders, adopt it as a custom game: ludusavi find-unknown --adopt <path> --name "Game Title"
+cli-find-unknown-adopted = Added to custom games: {$game} ({$path})
 
 badge-failed = FAILED
 badge-duplicates = DUPLICATES
@@ -102,6 +110,9 @@ field-roots = Roots:
 field-backup-excluded-items = Backup exclusions:
 # Games on the blacklist are completely hidden from scans and the interface.
 field-blacklisted-games = Blacklisted games:
+# These are extra save path templates (globs) checked for every game with a Steam ID.
+# Placeholders like <steamId> and <winDocuments> should not be translated.
+field-emulator-save-templates = Custom emulator save paths:
 field-redirects = Redirects:
 # This appears next to the number of full backups that you'd like to keep.
 # A full backup includes all save files for a game.

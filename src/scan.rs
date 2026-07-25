@@ -527,18 +527,46 @@ pub fn parse_paths(
 /// Well-known Steam emulator save locations.
 /// Each entry is a base folder plus a subfolder within it,
 /// which in turn contains one folder per Steam app ID.
+/// Nonexistent folders are harmless, since the paths are globbed
+/// and simply won't match anything.
 const EMULATOR_SAVE_LOCATIONS: &[(CommonPath, &str)] = &[
+    // Goldberg / GSE:
     (CommonPath::Data, "Goldberg SteamEmu Saves"),
     (CommonPath::Data, "GSE Saves"),
+    // SmartSteamEmu:
     (CommonPath::Data, "SmartSteamEmu"),
+    // CODEX / SmartSteamEmu (classic ProgramData layout with one subfolder per user name):
+    (CommonPath::WindowsProgramData, "Steam/*"),
+    // CODEX:
     (CommonPath::Document, "Steam/CODEX"),
     (CommonPath::Public, "Documents/Steam/CODEX"),
+    // RUNE:
     (CommonPath::Document, "Steam/RUNE"),
     (CommonPath::Public, "Documents/Steam/RUNE"),
+    // OnlineFix:
     (CommonPath::Document, "OnlineFix"),
     (CommonPath::Public, "Documents/OnlineFix"),
+    // EMPRESS:
     (CommonPath::Document, "EMPRESS"),
     (CommonPath::Public, "Documents/EMPRESS"),
+    // CPY:
+    (CommonPath::Document, "CPY_SAVES"),
+    (CommonPath::Data, "CPY_SAVES"),
+    // SKIDROW:
+    (CommonPath::DataLocal, "SKIDROW"),
+    (CommonPath::Document, "SKIDROW"),
+    // Tenoke:
+    (CommonPath::DataLocal, "Tenoke"),
+    // FLT:
+    (CommonPath::Data, "FLT"),
+    // PLAZA:
+    (CommonPath::Document, "Steam/PLAZA"),
+    (CommonPath::Public, "Documents/Steam/PLAZA"),
+    // DARKSiDERS:
+    (CommonPath::Document, "Steam/DARKSiDERS"),
+    (CommonPath::Public, "Documents/Steam/DARKSiDERS"),
+    // RLD!:
+    (CommonPath::Public, "Documents/Steam/RLD!"),
 ];
 
 /// Glob patterns for well-known emulator save locations (Goldberg, CODEX, etc.)
@@ -551,6 +579,58 @@ pub fn emulator_save_paths(steam_id: u32) -> Vec<String> {
             Some(format!("{base}/{folder}/{steam_id}"))
         })
         .collect()
+}
+
+/// Glob patterns for the parent folders of well-known emulator save locations,
+/// whose child folders are named after Steam app IDs.
+pub fn emulator_save_location_parents() -> Vec<String> {
+    EMULATOR_SAVE_LOCATIONS
+        .iter()
+        .filter_map(|(base, folder)| {
+            let base = base.get_globbable()?;
+            Some(format!("{base}/{folder}"))
+        })
+        .collect()
+}
+
+/// Leaf folder names of well-known emulator save locations (e.g., "CODEX"),
+/// excluding any globs.
+pub fn emulator_save_location_names() -> Vec<&'static str> {
+    EMULATOR_SAVE_LOCATIONS
+        .iter()
+        .filter_map(|(_, folder)| {
+            let leaf = folder.rsplit('/').next()?;
+            (!leaf.contains('*')).then_some(leaf)
+        })
+        .collect()
+}
+
+/// Placeholder for the Steam app ID in user-defined emulator save templates.
+pub const TEMPLATE_STEAM_ID: &str = "<steamId>";
+
+/// Resolve a user-defined emulator save template for a specific Steam app ID.
+/// Returns `None` if a base folder fails to resolve
+/// or if the template contains an unknown placeholder.
+pub fn resolve_emulator_save_template(template: &str, steam_id: u32) -> Option<String> {
+    use crate::resource::manifest::placeholder as p;
+
+    let mut resolved = template.replace(TEMPLATE_STEAM_ID, &steam_id.to_string());
+
+    for (placeholder, base) in [
+        (p::HOME, CommonPath::Home),
+        (p::WIN_APP_DATA, CommonPath::Data),
+        (p::WIN_LOCAL_APP_DATA, CommonPath::DataLocal),
+        (p::WIN_DOCUMENTS, CommonPath::Document),
+        (p::WIN_PUBLIC, CommonPath::Public),
+        (p::WIN_PROGRAM_DATA, CommonPath::WindowsProgramData),
+    ] {
+        if resolved.contains(placeholder) {
+            resolved = resolved.replace(placeholder, base.get_globbable()?);
+        }
+    }
+
+    // This excludes any unmatched placeholders.
+    (!resolved.contains('<')).then_some(resolved)
 }
 
 pub fn scan_game_for_backup(
@@ -569,6 +649,7 @@ pub fn scan_game_for_backup(
     steam_shortcuts: &SteamShortcuts,
     only_constructive_backups: bool,
     emulator_saves: bool,
+    emulator_save_templates: &[String],
 ) -> ScanInfo {
     log::trace!("[{name}] beginning scan for backup");
 
@@ -717,9 +798,17 @@ pub fn scan_game_for_backup(
         }
     }
 
-    if emulator_saves {
+    if emulator_saves || !emulator_save_templates.is_empty() {
         for id in all_ids.steam(steam_shortcut.map(|x| x.id)) {
-            for candidate in emulator_save_paths(id) {
+            let builtin = if emulator_saves {
+                emulator_save_paths(id)
+            } else {
+                vec![]
+            };
+            let templated = emulator_save_templates
+                .iter()
+                .filter_map(|template| resolve_emulator_save_template(template, id));
+            for candidate in builtin.into_iter().chain(templated) {
                 paths_to_check.insert((
                     StrictPath::relative(candidate, Some(manifest_dir_globbable.clone())),
                     None,
@@ -1143,6 +1232,7 @@ mod tests {
 
     const ONLY_CONSTRUCTIVE: bool = false;
     const EMULATOR_SAVES: bool = false;
+    const EMULATOR_SAVE_TEMPLATES: &[String] = &[];
 
     fn wine_semantics(prefix: &str) -> BackupSemantics {
         BackupSemantics {
@@ -1345,11 +1435,30 @@ mod tests {
             assert!(paths.iter().any(|x| x.ends_with("/Goldberg SteamEmu Saves/123")));
             assert!(paths.iter().any(|x| x.ends_with("/GSE Saves/123")));
             assert!(paths.iter().any(|x| x.ends_with("/SmartSteamEmu/123")));
+            assert!(paths.iter().any(|x| x.ends_with("/Steam/*/123")));
             assert!(paths.iter().any(|x| x.ends_with("/Steam/CODEX/123")));
             assert!(paths.iter().any(|x| x.ends_with("/Steam/RUNE/123")));
             assert!(paths.iter().any(|x| x.ends_with("/OnlineFix/123")));
             assert!(paths.iter().any(|x| x.ends_with("/EMPRESS/123")));
+            assert!(paths.iter().any(|x| x.ends_with("/CPY_SAVES/123")));
+            assert!(paths.iter().any(|x| x.ends_with("/SKIDROW/123")));
+            assert!(paths.iter().any(|x| x.ends_with("/Tenoke/123")));
+            assert!(paths.iter().any(|x| x.ends_with("/FLT/123")));
+            assert!(paths.iter().any(|x| x.ends_with("/Steam/PLAZA/123")));
+            assert!(paths.iter().any(|x| x.ends_with("/Steam/DARKSiDERS/123")));
+            assert!(paths.iter().any(|x| x.ends_with("/Steam/RLD!/123")));
         }
+    }
+
+    #[test]
+    fn can_resolve_emulator_save_templates() {
+        // Steam ID and base placeholders are substituted.
+        let resolved = resolve_emulator_save_template("<home>/emu/<steamId>", 123).unwrap();
+        assert!(resolved.ends_with("/emu/123"));
+        assert!(!resolved.contains('<'));
+
+        // Templates with unknown placeholders are dropped.
+        assert_eq!(None, resolve_emulator_save_template("<unknown>/emu/<steamId>", 123));
     }
 
     #[test]
@@ -1380,6 +1489,7 @@ mod tests {
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
+                EMULATOR_SAVE_TEMPLATES,
             ),
         );
 
@@ -1408,6 +1518,7 @@ mod tests {
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
+                EMULATOR_SAVE_TEMPLATES,
             ),
         );
     }
@@ -1440,6 +1551,7 @@ mod tests {
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
+                EMULATOR_SAVE_TEMPLATES,
             ),
         );
     }
@@ -1484,6 +1596,7 @@ mod tests {
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
+                EMULATOR_SAVE_TEMPLATES,
             ),
         );
     }
@@ -1516,6 +1629,7 @@ mod tests {
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
+                EMULATOR_SAVE_TEMPLATES,
             ),
         );
     }
@@ -1562,6 +1676,7 @@ mod tests {
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
+                EMULATOR_SAVE_TEMPLATES,
             ),
         );
     }
@@ -1598,6 +1713,7 @@ mod tests {
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
+                EMULATOR_SAVE_TEMPLATES,
             ),
         );
     }
@@ -1633,6 +1749,7 @@ mod tests {
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
+                EMULATOR_SAVE_TEMPLATES,
             ),
         );
     }
@@ -1665,6 +1782,7 @@ mod tests {
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
+                EMULATOR_SAVE_TEMPLATES,
             ),
         );
     }
@@ -1697,6 +1815,7 @@ mod tests {
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
+                EMULATOR_SAVE_TEMPLATES,
             ),
         );
     }
@@ -1736,6 +1855,7 @@ mod tests {
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
+                EMULATOR_SAVE_TEMPLATES,
             ),
         );
     }
@@ -1777,6 +1897,7 @@ mod tests {
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
+                EMULATOR_SAVE_TEMPLATES,
             ),
         );
     }
@@ -1818,6 +1939,7 @@ mod tests {
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
+                EMULATOR_SAVE_TEMPLATES,
             ),
         );
     }
@@ -1861,6 +1983,7 @@ mod tests {
             &Default::default(),
             ONLY_CONSTRUCTIVE,
             EMULATOR_SAVES,
+            EMULATOR_SAVE_TEMPLATES,
         );
 
         assert_eq!(
@@ -1913,6 +2036,7 @@ mod tests {
             &Default::default(),
             ONLY_CONSTRUCTIVE,
             EMULATOR_SAVES,
+            EMULATOR_SAVE_TEMPLATES,
         );
 
         assert_eq!(
@@ -1967,6 +2091,7 @@ mod tests {
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
+                EMULATOR_SAVE_TEMPLATES,
             ),
         );
     }
@@ -2026,6 +2151,7 @@ mod tests {
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
+                EMULATOR_SAVE_TEMPLATES,
             ),
         );
     }
@@ -2158,6 +2284,7 @@ mod tests {
                     &Default::default(),
                     ONLY_CONSTRUCTIVE,
                     EMULATOR_SAVES,
+                    EMULATOR_SAVE_TEMPLATES,
                 ),
             );
         }
@@ -2196,6 +2323,7 @@ mod tests {
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
+                EMULATOR_SAVE_TEMPLATES,
             ),
         );
     }
@@ -2233,6 +2361,7 @@ mod tests {
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
+                EMULATOR_SAVE_TEMPLATES,
             ),
         );
     }
@@ -2281,6 +2410,7 @@ mod tests {
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
+                EMULATOR_SAVE_TEMPLATES,
             ),
         );
     }

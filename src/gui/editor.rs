@@ -712,3 +712,26 @@ pub fn blacklisted_games<'a>(histories: &TextHistories) -> Container<'a> {
         .class(style::Container::GameListEntry),
     )
 }
+
+pub fn emulator_save_templates<'a>(histories: &TextHistories) -> Container<'a> {
+    Container::new(
+        Container::new(
+            Column::new().padding(5).spacing(5).push(
+                histories
+                    .emulator_save_templates
+                    .iter()
+                    .enumerate()
+                    .fold(Column::new().spacing(4), |column, (ii, _)| {
+                        column.push(
+                            Row::new()
+                                .spacing(20)
+                                .push(histories.input(UndoSubject::EmulatorSaveTemplate(ii)))
+                                .push(button::remove(Message::config(config::Event::EmulatorSaveTemplate), ii)),
+                        )
+                    })
+                    .push(button::add(Message::config(config::Event::EmulatorSaveTemplate))),
+            ),
+        )
+        .class(style::Container::GameListEntry),
+    )
+}
