@@ -95,6 +95,19 @@ impl GameListEntry {
                             .spacing(0)
                             .class(style::Checkbox)
                         })
+                        .push({
+                            config
+                                .scan
+                                .show_covers
+                                .then(|| crate::gui::cover::find(config, manifest, &name))
+                                .flatten()
+                                .map(|cover| {
+                                    iced::widget::image(cover.render())
+                                        .width(32)
+                                        .height(48)
+                                        .content_fit(iced::ContentFit::Contain)
+                                })
+                        })
                         .push(
                             Button::new(text(display_name.to_string()).align_x(HorizontalAlignment::Center))
                                 .on_press_maybe(if self.scanned {

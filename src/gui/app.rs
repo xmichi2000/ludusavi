@@ -1,4 +1,4 @@
-﻿use std::{
+use std::{
     collections::{HashMap, HashSet},
     time::{Duration, Instant},
 };
@@ -1576,25 +1576,30 @@ impl App {
                         self.text_histories.restore_source.push(&text);
                         self.config.restore.path.reset(text);
                     }
-                    config::Event::Root(action) => match action {
-                        EditAction::Add => {
-                            self.text_histories.roots.push(Default::default());
-                            self.config.roots.push(Root::default());
+                    config::Event::Root(action) => {
+                        // Covers come from the roots, so they may be somewhere else now.
+                        crate::gui::cover::clear_cache();
+
+                        match action {
+                            EditAction::Add => {
+                                self.text_histories.roots.push(Default::default());
+                                self.config.roots.push(Root::default());
+                            }
+                            EditAction::Change(index, value) => {
+                                self.text_histories.roots[index].path.push(&value);
+                                self.config.roots[index].path_mut().reset(value);
+                            }
+                            EditAction::Remove(index) => {
+                                self.text_histories.roots.remove(index);
+                                self.config.roots.remove(index);
+                            }
+                            EditAction::Move(index, direction) => {
+                                let offset = direction.shift(index);
+                                self.text_histories.roots.swap(index, offset);
+                                self.config.roots.swap(index, offset);
+                            }
                         }
-                        EditAction::Change(index, value) => {
-                            self.text_histories.roots[index].path.push(&value);
-                            self.config.roots[index].path_mut().reset(value);
-                        }
-                        EditAction::Remove(index) => {
-                            self.text_histories.roots.remove(index);
-                            self.config.roots.remove(index);
-                        }
-                        EditAction::Move(index, direction) => {
-                            let offset = direction.shift(index);
-                            self.text_histories.roots.swap(index, offset);
-                            self.config.roots.swap(index, offset);
-                        }
-                    },
+                    }
                     config::Event::RootLutrisDatabase(index, value) => {
                         self.text_histories.roots[index].lutris_database.push(&value);
                         if let Root::Lutris(root) = &mut self.config.roots[index] {
@@ -2010,6 +2015,9 @@ impl App {
                     }
                     config::Event::DiffRetention(value) => {
                         self.config.backup.retention.differential = value;
+                    }
+                    config::Event::ShowCovers(value) => {
+                        self.config.scan.show_covers = value;
                     }
                     config::Event::FindUnknownSavesOnStartup(value) => {
                         self.config.scan.find_unknown_saves_on_startup = value;

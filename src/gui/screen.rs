@@ -604,6 +604,11 @@ pub fn other<'a>(
                                     Message::config(config::Event::InstallDirSaves),
                                 ))
                                 .push(checkbox(
+                                    TRANSLATOR.show_covers(),
+                                    config.scan.show_covers,
+                                    Message::config(config::Event::ShowCovers),
+                                ))
+                                .push(checkbox(
                                     TRANSLATOR.find_unknown_saves_on_startup(),
                                     config.scan.find_unknown_saves_on_startup,
                                     Message::config(config::Event::FindUnknownSavesOnStartup),

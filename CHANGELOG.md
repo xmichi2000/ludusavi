@@ -48,6 +48,11 @@
     since their saves may be incomplete.
     You can change this with the "skip games that are currently running" option
     (`watch.skipRunningGames` in the config file).
+  * The game list now shows cover art for games,
+    reusing the images that Steam has already downloaded to its own cache,
+    so nothing is fetched from the internet.
+    You can turn this off with the "show cover art for games" option
+    on the "other" screen (`scan.showCovers` in the config file).
   * There is a new "dashboard" screen that summarizes the state of your backups:
     where they are stored, how many games and restore points there are,
     when the latest backup was made and how far the history goes back,

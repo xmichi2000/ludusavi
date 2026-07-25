@@ -566,6 +566,10 @@ impl Translator {
         translate("label-dashboard-off")
     }
 
+    pub fn show_covers(&self) -> String {
+        translate("check-show-covers")
+    }
+
     pub fn find_unknown_saves_on_startup(&self) -> String {
         translate("check-find-unknown-saves-on-startup")
     }

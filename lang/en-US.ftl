@@ -128,8 +128,6 @@ field-retention-full = Full:
 # This appears next to the number of differential backups that you'd like to keep.
 # A differential backup includes only the files that have changed since the last full backup.
 field-retention-differential = Differential:
-# This appears next to a checkbox for deleting old backups based on their age
-# instead of based on the number of full backups to keep.
 nav-dashboard = Dashboard
 button-refresh = Refresh
 field-dashboard-games = Games with backups:
@@ -163,6 +161,8 @@ cli-watch-nothing-running = No known games are running right now.
 cli-watch-backing-up = Backing up { $game }...
 cli-watch-backed-up = Backed up { $game }
 cli-watch-backup-failed = Unable to back up { $game }
+# This appears next to a checkbox for deleting old backups based on their age
+# instead of based on the number of full backups to keep.
 field-retention-time-based = Time-based:
 # This appears next to the number of days for which every backup is kept.
 field-retention-keep-all-days = Keep all (days):
@@ -364,3 +364,4 @@ custom-game-will-override = This custom game overrides a manifest entry
 custom-game-will-extend = This custom game extends a manifest entry
 
 operation-will-only-include-listed-games = This will only process the games that are currently listed
+check-show-covers = Show cover art for games

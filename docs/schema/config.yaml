@@ -116,6 +116,7 @@ properties:
       emulatorSaveTemplates: []
       findUnknownSavesOnStartup: true
       installDirSaves: true
+      showCovers: true
       redirectWine: false
       showDeselectedGames: true
       showUnchangedGames: true
@@ -933,6 +934,10 @@ definitions:
       redirectWine:
         description: Generate best-effort Windows/Wine redirects during scans.
         default: false
+        type: boolean
+      showCovers:
+        description: "In the GUI, show cover art for games that Steam has already downloaded."
+        default: true
         type: boolean
       showDeselectedGames:
         description: "In the GUI, show games that have been deselected."

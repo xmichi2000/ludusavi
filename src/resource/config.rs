@@ -107,6 +107,7 @@ pub enum Event {
     CloudPath(String),
     SortCustomGames,
     OnlyConstructiveBackups(bool),
+    ShowCovers(bool),
     FindUnknownSavesOnStartup(bool),
     WatchEnabled(bool),
     WatchNotify(bool),
@@ -1215,6 +1216,8 @@ pub struct Scan {
     pub emulator_save_templates: Vec<String>,
     /// Also check common save folders inside each game's install directory (saves, save, savegames, saved).
     pub install_dir_saves: bool,
+    /// In the GUI, show cover art for games that Steam has already downloaded.
+    pub show_covers: bool,
     /// Look for unknown save folders when the GUI starts.
     pub find_unknown_saves_on_startup: bool,
     /// Folders that you've dismissed when looking for unknown saves.
@@ -1232,6 +1235,7 @@ impl Default for Scan {
             emulator_saves: true,
             emulator_save_templates: vec![],
             install_dir_saves: true,
+            show_covers: true,
             find_unknown_saves_on_startup: true,
             dismissed_unknown_saves: Default::default(),
         }
@@ -2328,6 +2332,7 @@ mod tests {
               showUnchangedGames: false
               showUnscannedGames: false
               emulatorSaves: false
+              showCovers: false
               findUnknownSavesOnStartup: false
             cloud:
               remote:
@@ -2431,6 +2436,7 @@ mod tests {
                     emulator_saves: false,
                     emulator_save_templates: vec![],
                     install_dir_saves: true,
+                    show_covers: false,
                     find_unknown_saves_on_startup: false,
                     dismissed_unknown_saves: Default::default(),
                 },
@@ -2568,6 +2574,7 @@ scan:
   emulatorSaves: false
   emulatorSaveTemplates: []
   installDirSaves: false
+  showCovers: false
   findUnknownSavesOnStartup: false
   dismissedUnknownSaves: []
 watch:
@@ -2678,6 +2685,7 @@ blacklistedGames:
                     emulator_saves: false,
                     emulator_save_templates: vec![],
                     install_dir_saves: false,
+                    show_covers: false,
                     find_unknown_saves_on_startup: false,
                     dismissed_unknown_saves: Default::default(),
                 },
