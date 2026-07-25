@@ -259,3 +259,55 @@ new-version-available = Eine Anwendungsaktualisierung ist verfügbar: { $version
 custom-game-will-override = Dieses benutzerdefinierte Spiel überschreibt einen Manifest-Eintrag
 custom-game-will-extend = Dieses benutzerdefinierte Spiel erweitert einen Manifest-Eintrag
 operation-will-only-include-listed-games = Hiermit werden nur die derzeit aufgelisteten Spiele verarbeitet
+
+# --- Fork-Erweiterungen ---
+cli-blacklist-unrecognized-game = Keine Informationen zu diesem Spiel, wird trotzdem gesperrt: {$game}
+cli-blacklist-entry-not-found = Nicht auf der Sperrliste: {$game}
+cli-find-unknown-nothing-found = Keine unbekannten Spielstand-Ordner gefunden.
+cli-find-unknown-candidate = {$path} [Dateien: {$files}, Größe: {$size}, geändert: {$modified}]
+cli-find-unknown-steam-id = unbekannte Steam-ID: {$id}
+cli-find-unknown-adopt-hint = Um einen dieser Ordner zu sichern, übernimm ihn als eigenes Spiel: ludusavi find-unknown --adopt <Pfad> --name "Spieltitel"
+cli-find-unknown-adopted = Zu den eigenen Spielen hinzugefügt: {$game} ({$path})
+button-blacklist = Zur Sperrliste hinzufügen
+button-find-unknown-saves = Unbekannte Spielstände suchen
+button-adopt = Übernehmen
+button-dismiss = Verwerfen
+button-refresh = Aktualisieren
+label-unknown-saves = Unbekannte Spielstand-Ordner:
+no-unknown-saves-found = Keine unbekannten Spielstand-Ordner gefunden.
+field-blacklisted-games = Gesperrte Spiele:
+field-emulator-save-templates = Eigene Emulator-Speicherpfade:
+check-emulator-saves = Emulator-Speicherorte prüfen (Goldberg, CODEX usw.)
+check-install-dir-saves = Übliche Spielstand-Ordner im Installationsverzeichnis prüfen (saves, save, savegames, saved)
+check-find-unknown-saves-on-startup = Beim Start nach unbekannten Spielstand-Ordnern suchen
+notify-unknown-saves-found =
+    { $total ->
+        [one] 1 unbekannter Spielstand-Ordner gefunden
+       *[other] { $total } unbekannte Spielstand-Ordner gefunden
+    }
+nav-dashboard = Übersicht
+field-dashboard-games = Spiele mit Sicherungen:
+field-dashboard-restore-points = Wiederherstellungspunkte:
+field-dashboard-latest = Letzte Sicherung:
+field-dashboard-earliest = Verlauf reicht zurück bis:
+field-dashboard-automatic-backups = Automatische Sicherungen:
+field-dashboard-cloud = Cloud:
+field-dashboard-cloud-synced = Letzte Cloud-Synchronisierung:
+field-dashboard-unknown-saves = Unbekannte Spielstand-Ordner:
+label-dashboard-on = An
+label-dashboard-off = Aus
+check-watch-enabled = Automatisch sichern, wenn ein Spiel beendet wird
+check-watch-notify = Nach jeder automatischen Sicherung benachrichtigen
+check-watch-skip-running-games = Laufende Spiele überspringen
+field-watch-settle-seconds = Wartezeit nach Spielende (Sekunden):
+field-watch-poll-seconds = Prüfintervall (Sekunden):
+cli-backup-skipped-running-games = Übersprungen, weil diese Spiele laufen: { $game }
+cli-watch-started = Überwachung läuft. Zum Beenden Strg+C drücken.
+cli-watch-nothing-running = Derzeit läuft kein bekanntes Spiel.
+cli-watch-backing-up = { $game } wird gesichert...
+cli-watch-backed-up = { $game } gesichert
+cli-watch-backup-failed = { $game } konnte nicht gesichert werden
+field-retention-time-based = Zeitbasiert:
+field-retention-keep-all-days = Alle behalten (Tage):
+field-retention-keep-daily-days = Täglich (Tage):
+field-retention-keep-weekly-weeks = Wöchentlich (Wochen):

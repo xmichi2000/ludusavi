@@ -285,7 +285,7 @@ pub struct Dashboard {
 }
 
 impl Dashboard {
-    pub fn view<'a>(&self, config: &Config, unknown_saves: Option<usize>) -> Element<'a> {
+    pub fn view<'a>(&self, config: &Config, cache: &Cache, unknown_saves: Option<usize>) -> Element<'a> {
         fn line<'a>(label: String, value: String) -> Row<'a> {
             Row::new()
                 .spacing(15)
@@ -342,6 +342,9 @@ impl Dashboard {
                                 None => TRANSLATOR.dashboard_off(),
                             },
                         ))
+                        .push_if(config.cloud.remote.is_some(), || {
+                            line(TRANSLATOR.dashboard_cloud_synced_label(), when(cache.cloud.synced))
+                        })
                         .push(line(
                             TRANSLATOR.dashboard_unknown_saves_label(),
                             match unknown_saves {

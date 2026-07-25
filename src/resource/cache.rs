@@ -20,6 +20,15 @@ pub struct Cache {
     pub roots: BTreeSet<Root>,
     pub backup: Backup,
     pub restore: Restore,
+    pub cloud: Cloud,
+}
+
+/// What we know about the state of cloud synchronization.
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(default)]
+pub struct Cloud {
+    /// When the last cloud sync finished.
+    pub synced: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

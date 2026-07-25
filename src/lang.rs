@@ -549,6 +549,10 @@ impl Translator {
         translate("field-dashboard-cloud")
     }
 
+    pub fn dashboard_cloud_synced_label(&self) -> String {
+        translate("field-dashboard-cloud-synced")
+    }
+
     pub fn dashboard_unknown_saves_label(&self) -> String {
         translate("field-dashboard-unknown-saves")
     }

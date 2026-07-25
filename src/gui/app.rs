@@ -1200,6 +1200,8 @@ impl App {
                 Operation::Idle | Operation::ValidateBackups { .. } | Operation::Cloud { .. } => None,
             }
         } else if self.operation.integrated_syncing_cloud() {
+            self.cache.cloud.synced = Some(chrono::Utc::now());
+            self.save_cache();
             self.operation.transition_from_cloud_step(synced);
             match self.operation {
                 Operation::Backup { .. } => Some(self.handle_backup(BackupPhase::Done)),
@@ -3259,6 +3261,7 @@ impl App {
                 ),
                 Screen::Dashboard => self.dashboard_screen.view(
                     &self.config,
+                    &self.cache,
                     self.custom_games_screen.unknown_saves.as_ref().map(|x| x.len()),
                 ),
                 Screen::Other => screen::other(

@@ -138,6 +138,7 @@ field-dashboard-latest = Latest backup:
 field-dashboard-earliest = History goes back to:
 field-dashboard-automatic-backups = Automatic backups:
 field-dashboard-cloud = Cloud:
+field-dashboard-cloud-synced = Last cloud sync:
 field-dashboard-unknown-saves = Unknown save folders:
 label-dashboard-on = On
 label-dashboard-off = Off
