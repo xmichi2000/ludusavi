@@ -23,7 +23,7 @@ use crate::{
         config::{self, BackupFormat, CloudFilter, Config, SortKey, Theme, ZipCompression},
         manifest::{Manifest, Store},
     },
-    scan::{DuplicateDetector, Duplication, OperationStatus, ScanKind},
+    scan::{DuplicateDetector, Duplication, OperationStatus, ScanKind, radar::UnknownSaveCandidate},
 };
 
 const RCLONE_URL: &str = "https://rclone.org/downloads";
@@ -241,6 +241,10 @@ impl Restore {
 #[derive(Default)]
 pub struct CustomGames {
     pub filter: CustomGamesFilter,
+    /// Whether an unknown-saves scan is currently running.
+    pub scanning_unknown_saves: bool,
+    /// Results of the last unknown-saves scan, if any.
+    pub unknown_saves: Option<Vec<UnknownSaveCandidate>>,
 }
 
 impl CustomGames {
@@ -259,6 +263,7 @@ impl CustomGames {
                     .spacing(20)
                     .align_y(Alignment::Center)
                     .push(button::add_game())
+                    .push(button::find_unknown_saves(self.scanning_unknown_saves))
                     .push(button::toggle_all_custom_games(
                         self.all_visible_game_selected(config),
                         self.is_filtered(),
@@ -267,6 +272,7 @@ impl CustomGames {
                     .push(button::filter(self.filter.enabled)),
             )
             .push(self.filter.view(histories))
+            .push_if(self.unknown_saves.is_some(), || self.view_unknown_saves())
             .push(editor::custom_games(
                 config,
                 manifest,
@@ -277,6 +283,45 @@ impl CustomGames {
             ));
 
         template(content)
+    }
+
+    fn view_unknown_saves(&self) -> Element<'_> {
+        let candidates = self.unknown_saves.as_deref().unwrap_or_default();
+
+        let mut column = Column::new().spacing(5).push(text(TRANSLATOR.unknown_saves_label()));
+
+        if candidates.is_empty() {
+            column = column.push(text(TRANSLATOR.no_unknown_saves_found()));
+        }
+
+        for (index, candidate) in candidates.iter().enumerate() {
+            let modified = candidate
+                .modified
+                .map(|x| x.format("%Y-%m-%d").to_string())
+                .unwrap_or_else(|| "?".to_string());
+
+            column = column.push(
+                Row::new()
+                    .spacing(10)
+                    .align_y(Alignment::Center)
+                    .push(button::adopt_unknown_save(index))
+                    .push(button::dismiss_unknown_save(index))
+                    .push(text(TRANSLATOR.cli_find_unknown_candidate(
+                        &candidate.path.render(),
+                        candidate.files,
+                        &TRANSLATOR.adjusted_size(candidate.bytes),
+                        &modified,
+                    )))
+                    .push_if(candidate.unknown_steam_id.is_some(), || {
+                        Badge::new(
+                            &TRANSLATOR.cli_find_unknown_steam_id(candidate.unknown_steam_id.unwrap_or_default()),
+                        )
+                        .view()
+                    }),
+            );
+        }
+
+        Container::new(column).padding([0, 20]).into()
     }
 
     fn is_filtered(&self) -> bool {
@@ -430,6 +475,11 @@ pub fn other<'a>(
                                         .push(text(TRANSLATOR.emulator_save_templates_label()))
                                         .push(editor::emulator_save_templates(histories)),
                                 )
+                                .push(checkbox(
+                                    TRANSLATOR.check_install_dir_saves(),
+                                    config.scan.install_dir_saves,
+                                    Message::config(config::Event::InstallDirSaves),
+                                ))
                                 .push(checkbox(
                                     TRANSLATOR.field(&TRANSLATOR.explanation_for_exclude_cloud_games()),
                                     config.backup.filter.cloud.exclude,

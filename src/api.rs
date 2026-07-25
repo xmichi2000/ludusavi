@@ -236,6 +236,7 @@ impl Ludusavi {
                 self.config.backup.only_constructive,
                 self.config.scan.emulator_saves,
                 &self.config.scan.emulator_save_templates,
+                self.config.scan.install_dir_saves,
             );
             let ignored = !&self.config.is_game_enabled_for_backup(name) && !games_specified && !include_disabled;
             let decision = if ignored {

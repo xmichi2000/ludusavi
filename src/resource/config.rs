@@ -94,6 +94,7 @@ pub enum Event {
     ShowUnchangedGames(bool),
     ShowUnscannedGames(bool),
     EmulatorSaves(bool),
+    InstallDirSaves(bool),
     OverrideMaxThreads(bool),
     MaxThreads(usize),
     RcloneExecutable(String),
@@ -1162,6 +1163,8 @@ pub struct Scan {
     /// Supported placeholders: `<steamId>`, `<winAppData>`, `<winLocalAppData>`,
     /// `<winDocuments>`, `<winPublic>`, `<winProgramData>`, `<home>`.
     pub emulator_save_templates: Vec<String>,
+    /// Also check common save folders inside each game's install directory (saves, save, savegames, saved).
+    pub install_dir_saves: bool,
 }
 
 impl Default for Scan {
@@ -1173,6 +1176,7 @@ impl Default for Scan {
             redirect_wine: false,
             emulator_saves: true,
             emulator_save_templates: vec![],
+            install_dir_saves: true,
         }
     }
 }
@@ -2310,6 +2314,7 @@ mod tests {
                     redirect_wine: false,
                     emulator_saves: false,
                     emulator_save_templates: vec![],
+                    install_dir_saves: true,
                 },
                 cloud: Cloud {
                     remote: Some(Remote::GoogleDrive {
@@ -2443,6 +2448,7 @@ scan:
   redirectWine: false
   emulatorSaves: false
   emulatorSaveTemplates: []
+  installDirSaves: false
 cloud:
   remote:
     GoogleDrive:
@@ -2543,6 +2549,7 @@ blacklistedGames:
                     redirect_wine: false,
                     emulator_saves: false,
                     emulator_save_templates: vec![],
+                    install_dir_saves: false,
                 },
                 cloud: Cloud {
                     remote: Some(Remote::GoogleDrive {

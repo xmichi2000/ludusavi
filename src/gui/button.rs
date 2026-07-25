@@ -311,6 +311,30 @@ pub fn add_game<'a>() -> Element<'a> {
     )
 }
 
+pub fn find_unknown_saves<'a>(scanning: bool) -> Element<'a> {
+    template(
+        text(TRANSLATOR.find_unknown_saves_button()).width(WIDTH),
+        (!scanning).then_some(Message::FindUnknownSaves),
+        None,
+    )
+}
+
+pub fn adopt_unknown_save<'a>(index: usize) -> Element<'a> {
+    template(
+        text(TRANSLATOR.adopt_button()),
+        Some(Message::AdoptUnknownSave { index }),
+        None,
+    )
+}
+
+pub fn dismiss_unknown_save<'a>(index: usize) -> Element<'a> {
+    template(
+        Icon::RemoveCircle.text(),
+        Some(Message::DismissUnknownSave { index }),
+        Some(style::Button::Negative),
+    )
+}
+
 pub fn open_url<'a>(label: String, url: String) -> Element<'a> {
     template(text(label).width(WIDTH), Some(Message::OpenUrl(url)), None)
 }

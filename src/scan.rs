@@ -5,6 +5,7 @@ pub mod game_filter;
 pub mod launchers;
 pub mod layout;
 pub mod preview;
+pub mod radar;
 pub mod registry;
 pub mod saves;
 pub mod semantic;
@@ -25,6 +26,7 @@ pub use self::{
     duplicate::{DuplicateDetector, Duplication},
     launchers::{LauncherGame, Launchers},
     preview::ScanInfo,
+    radar::UnknownSaveCandidate,
     saves::{ScannedFile, ScannedRegistry, ScannedRegistryValue, ScannedRegistryValues},
     steam::{SteamShortcut, SteamShortcuts},
     title::{TitleFinder, TitleMatch, TitleQuery, compare_ranked_titles, compare_ranked_titles_ref},
@@ -37,7 +39,7 @@ use crate::{
         config::{
             BackupFilter, Config, RedirectConfig, RedirectKind, Root, SortKey, ToggledPaths, ToggledRegistry, root,
         },
-        manifest::{Game, GameFileEntry, IdSet, Os, Store},
+        manifest::{Game, GameFileEntry, IdSet, Os, Store, placeholder},
     },
     scan::layout::{BackupSemantics, DirectorySemantics, LatestBackup, SemanticDirKind},
 };
@@ -605,6 +607,12 @@ pub fn emulator_save_location_names() -> Vec<&'static str> {
         .collect()
 }
 
+/// Common save folder names inside a game's install directory,
+/// as used by e.g. HyperVisor-style releases (`<GameDir>/saves/<appid>`).
+/// Nonexistent folders are harmless, since the paths are globbed
+/// and simply won't match anything.
+const INSTALL_DIR_SAVE_FOLDERS: &[&str] = &["saves", "save", "savegames", "saved"];
+
 /// Placeholder for the Steam app ID in user-defined emulator save templates.
 pub const TEMPLATE_STEAM_ID: &str = "<steamId>";
 
@@ -650,6 +658,7 @@ pub fn scan_game_for_backup(
     only_constructive_backups: bool,
     emulator_saves: bool,
     emulator_save_templates: &[String],
+    install_dir_saves: bool,
 ) -> ScanInfo {
     log::trace!("[{name}] beginning scan for backup");
 
@@ -703,6 +712,18 @@ pub fn scan_game_for_backup(
         }
     }
 
+    // Pseudo-manifest paths for common save folders inside the game's install directory.
+    // The `<base>` placeholder resolves via launcher data and install dir detection.
+    let default_file_entry = GameFileEntry::default();
+    let install_dir_save_paths: Vec<String> = if install_dir_saves {
+        INSTALL_DIR_SAVE_FOLDERS
+            .iter()
+            .map(|folder| format!("{}/{folder}", placeholder::BASE))
+            .collect()
+    } else {
+        vec![]
+    };
+
     for root in roots_to_check {
         log::trace!("[{name}] adding candidates from root: {:?}", &root,);
         if root.path().raw().trim().is_empty() {
@@ -710,7 +731,16 @@ pub fn scan_game_for_backup(
         }
         let root_globbable = root.path().globbable();
 
-        for (raw_path, path_data) in &game.files {
+        let file_paths = game
+            .files
+            .iter()
+            .map(|(raw_path, path_data)| (raw_path.as_str(), path_data))
+            .chain(
+                install_dir_save_paths
+                    .iter()
+                    .map(|raw_path| (raw_path.as_str(), &default_file_entry)),
+            );
+        for (raw_path, path_data) in file_paths {
             log::trace!("[{name}] parsing candidates from: {}", raw_path);
             if raw_path.trim().is_empty() {
                 continue;
@@ -1233,6 +1263,7 @@ mod tests {
     const ONLY_CONSTRUCTIVE: bool = false;
     const EMULATOR_SAVES: bool = false;
     const EMULATOR_SAVE_TEMPLATES: &[String] = &[];
+    const INSTALL_DIR_SAVES: bool = false;
 
     fn wine_semantics(prefix: &str) -> BackupSemantics {
         BackupSemantics {
@@ -1490,6 +1521,7 @@ mod tests {
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
                 EMULATOR_SAVE_TEMPLATES,
+                INSTALL_DIR_SAVES,
             ),
         );
 
@@ -1519,6 +1551,75 @@ mod tests {
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
                 EMULATOR_SAVE_TEMPLATES,
+                INSTALL_DIR_SAVES,
+            ),
+        );
+    }
+
+    #[test]
+    fn can_scan_game_for_backup_with_install_dir_saves() {
+        // Enabled: common save folders inside the install dir are checked via `<base>`.
+        assert_eq!(
+            ScanInfo {
+                game_name: s("game1"),
+                found_files: hash_map! {
+                    format!("{}/tests/root1/game1/saves/slot1/save.dat", repo()).into(): ScannedFile::new(0, EMPTY_HASH).change_new(),
+                    format!("{}/tests/root1/game1/subdir/file2.txt", repo()).into(): ScannedFile::new(2, "9d891e731f75deae56884d79e9816736b7488080").change_new(),
+                    format!("{}/tests/root2/game1/file1.txt", repo()).into(): ScannedFile::new(1, "3a52ce780950d4d969792a2559cd519d7ee8c727").change_new(),
+                },
+                found_registry_keys: hash_map! {},
+                ..Default::default()
+            },
+            scan_game_for_backup(
+                &manifest().0["game1"],
+                "game1",
+                &config().roots,
+                &StrictPath::new(repo()),
+                &Launchers::scan_dirs(&config().roots, &manifest(), &["game1".to_string()]),
+                &BackupFilter::default(),
+                None,
+                &ToggledPaths::default(),
+                &ToggledRegistry::default(),
+                None,
+                &[],
+                false,
+                &Default::default(),
+                ONLY_CONSTRUCTIVE,
+                EMULATOR_SAVES,
+                EMULATOR_SAVE_TEMPLATES,
+                true,
+            ),
+        );
+
+        // Disabled: the install dir save folder is ignored.
+        assert_eq!(
+            ScanInfo {
+                game_name: s("game1"),
+                found_files: hash_map! {
+                    format!("{}/tests/root1/game1/subdir/file2.txt", repo()).into(): ScannedFile::new(2, "9d891e731f75deae56884d79e9816736b7488080").change_new(),
+                    format!("{}/tests/root2/game1/file1.txt", repo()).into(): ScannedFile::new(1, "3a52ce780950d4d969792a2559cd519d7ee8c727").change_new(),
+                },
+                found_registry_keys: hash_map! {},
+                ..Default::default()
+            },
+            scan_game_for_backup(
+                &manifest().0["game1"],
+                "game1",
+                &config().roots,
+                &StrictPath::new(repo()),
+                &Launchers::scan_dirs(&config().roots, &manifest(), &["game1".to_string()]),
+                &BackupFilter::default(),
+                None,
+                &ToggledPaths::default(),
+                &ToggledRegistry::default(),
+                None,
+                &[],
+                false,
+                &Default::default(),
+                ONLY_CONSTRUCTIVE,
+                EMULATOR_SAVES,
+                EMULATOR_SAVE_TEMPLATES,
+                false,
             ),
         );
     }
@@ -1552,6 +1653,7 @@ mod tests {
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
                 EMULATOR_SAVE_TEMPLATES,
+                INSTALL_DIR_SAVES,
             ),
         );
     }
@@ -1597,6 +1699,7 @@ mod tests {
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
                 EMULATOR_SAVE_TEMPLATES,
+                INSTALL_DIR_SAVES,
             ),
         );
     }
@@ -1630,6 +1733,7 @@ mod tests {
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
                 EMULATOR_SAVE_TEMPLATES,
+                INSTALL_DIR_SAVES,
             ),
         );
     }
@@ -1677,6 +1781,7 @@ mod tests {
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
                 EMULATOR_SAVE_TEMPLATES,
+                INSTALL_DIR_SAVES,
             ),
         );
     }
@@ -1714,6 +1819,7 @@ mod tests {
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
                 EMULATOR_SAVE_TEMPLATES,
+                INSTALL_DIR_SAVES,
             ),
         );
     }
@@ -1750,6 +1856,7 @@ mod tests {
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
                 EMULATOR_SAVE_TEMPLATES,
+                INSTALL_DIR_SAVES,
             ),
         );
     }
@@ -1783,6 +1890,7 @@ mod tests {
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
                 EMULATOR_SAVE_TEMPLATES,
+                INSTALL_DIR_SAVES,
             ),
         );
     }
@@ -1816,6 +1924,7 @@ mod tests {
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
                 EMULATOR_SAVE_TEMPLATES,
+                INSTALL_DIR_SAVES,
             ),
         );
     }
@@ -1856,6 +1965,7 @@ mod tests {
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
                 EMULATOR_SAVE_TEMPLATES,
+                INSTALL_DIR_SAVES,
             ),
         );
     }
@@ -1898,6 +2008,7 @@ mod tests {
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
                 EMULATOR_SAVE_TEMPLATES,
+                INSTALL_DIR_SAVES,
             ),
         );
     }
@@ -1940,6 +2051,7 @@ mod tests {
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
                 EMULATOR_SAVE_TEMPLATES,
+                INSTALL_DIR_SAVES,
             ),
         );
     }
@@ -1984,6 +2096,7 @@ mod tests {
             ONLY_CONSTRUCTIVE,
             EMULATOR_SAVES,
             EMULATOR_SAVE_TEMPLATES,
+            INSTALL_DIR_SAVES,
         );
 
         assert_eq!(
@@ -2037,6 +2150,7 @@ mod tests {
             ONLY_CONSTRUCTIVE,
             EMULATOR_SAVES,
             EMULATOR_SAVE_TEMPLATES,
+            INSTALL_DIR_SAVES,
         );
 
         assert_eq!(
@@ -2092,6 +2206,7 @@ mod tests {
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
                 EMULATOR_SAVE_TEMPLATES,
+                INSTALL_DIR_SAVES,
             ),
         );
     }
@@ -2152,6 +2267,7 @@ mod tests {
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
                 EMULATOR_SAVE_TEMPLATES,
+                INSTALL_DIR_SAVES,
             ),
         );
     }
@@ -2285,6 +2401,7 @@ mod tests {
                     ONLY_CONSTRUCTIVE,
                     EMULATOR_SAVES,
                     EMULATOR_SAVE_TEMPLATES,
+                    INSTALL_DIR_SAVES,
                 ),
             );
         }
@@ -2324,6 +2441,7 @@ mod tests {
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
                 EMULATOR_SAVE_TEMPLATES,
+                INSTALL_DIR_SAVES,
             ),
         );
     }
@@ -2362,6 +2480,7 @@ mod tests {
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
                 EMULATOR_SAVE_TEMPLATES,
+                INSTALL_DIR_SAVES,
             ),
         );
     }
@@ -2411,6 +2530,7 @@ mod tests {
                 ONLY_CONSTRUCTIVE,
                 EMULATOR_SAVES,
                 EMULATOR_SAVE_TEMPLATES,
+                INSTALL_DIR_SAVES,
             ),
         );
     }

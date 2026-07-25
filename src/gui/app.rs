@@ -35,7 +35,7 @@ use crate::{
     },
     scan::{
         BackupId, Launchers, ScanKind, SteamShortcuts, TitleFinder, game_filter, layout::BackupLayout,
-        prepare_backup_target, registry::RegistryItem, scan_game_for_backup, semantic,
+        prepare_backup_target, radar, registry::RegistryItem, scan_game_for_backup, semantic,
     },
 };
 
@@ -557,6 +557,7 @@ impl App {
                                     config.backup.only_constructive,
                                     config.scan.emulator_saves,
                                     &config.scan.emulator_save_templates,
+                                    config.scan.install_dir_saves,
                                 );
                                 if !config.is_game_enabled_for_backup(&key) && !single {
                                     return (Some(scan_info), None);
@@ -2025,6 +2026,9 @@ impl App {
                     config::Event::EmulatorSaves(value) => {
                         self.config.scan.emulator_saves = value;
                     }
+                    config::Event::InstallDirSaves(value) => {
+                        self.config.scan.install_dir_saves = value;
+                    }
                     config::Event::OverrideMaxThreads(overridden) => {
                         self.config.override_threads(overridden);
                     }
@@ -2961,6 +2965,75 @@ impl App {
                     Some(position) => Message::Scroll { subject, position },
                     None => Message::Ignore,
                 })
+            }
+            Message::FindUnknownSaves => {
+                if self.custom_games_screen.scanning_unknown_saves {
+                    return Task::none();
+                }
+                self.custom_games_screen.scanning_unknown_saves = true;
+
+                let mut manifest = self.manifest.primary.clone();
+                let config = self.config.clone();
+                Task::perform(
+                    async move {
+                        manifest.incorporate_extensions(&config);
+                        let layout = BackupLayout::new(config.restore.path.clone());
+                        let title_finder = TitleFinder::new(&config, &manifest, layout.restorable_game_set());
+                        radar::find_unknown_saves(&config, &title_finder)
+                    },
+                    Message::FoundUnknownSaves,
+                )
+            }
+            Message::FoundUnknownSaves(candidates) => {
+                self.custom_games_screen.scanning_unknown_saves = false;
+                self.custom_games_screen.unknown_saves = Some(candidates);
+                Task::none()
+            }
+            Message::AdoptUnknownSave { index } => {
+                let candidate = match &mut self.custom_games_screen.unknown_saves {
+                    Some(candidates) if index < candidates.len() => candidates.remove(index),
+                    _ => return Task::none(),
+                };
+
+                let name = candidate.suggested_name();
+                let path = candidate.path.render();
+
+                // Same semantics as the CLI's `find-unknown --adopt`.
+                match self
+                    .config
+                    .custom_games
+                    .iter_mut()
+                    .enumerate()
+                    .find(|(_, x)| x.name == name && x.alias.is_none())
+                {
+                    Some((i, existing)) => {
+                        if !existing.files.contains(&path) {
+                            existing.files.push(path.clone());
+                            self.text_histories.custom_games[i].files.push(TextHistory::raw(&path));
+                        }
+                        existing.expanded = true;
+                    }
+                    None => {
+                        let game = CustomGame {
+                            name,
+                            files: vec![path],
+                            expanded: true,
+                            ..Default::default()
+                        };
+                        self.text_histories.add_custom_game(&game);
+                        self.config.custom_games.push(game);
+                    }
+                }
+                self.save_config();
+                Task::none()
+            }
+            Message::DismissUnknownSave { index } => {
+                if let Some(candidates) = &mut self.custom_games_screen.unknown_saves
+                    && index < candidates.len()
+                {
+                    candidates.remove(index);
+                }
+                Task::none()
             }
             Message::ShowScanActiveGames => self.show_modal(Modal::ActiveScanGames),
             Message::CopyText(text) => iced::clipboard::write(text),

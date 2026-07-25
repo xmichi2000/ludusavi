@@ -828,6 +828,26 @@ impl Translator {
         translate("button-add-game")
     }
 
+    pub fn find_unknown_saves_button(&self) -> String {
+        translate("button-find-unknown-saves")
+    }
+
+    pub fn adopt_button(&self) -> String {
+        translate("button-adopt")
+    }
+
+    pub fn dismiss_button(&self) -> String {
+        translate("button-dismiss")
+    }
+
+    pub fn unknown_saves_label(&self) -> String {
+        translate("label-unknown-saves")
+    }
+
+    pub fn no_unknown_saves_found(&self) -> String {
+        translate("no-unknown-saves-found")
+    }
+
     pub fn continue_button(&self) -> String {
         translate("button-continue")
     }
@@ -1186,6 +1206,10 @@ impl Translator {
 
     pub fn check_emulator_saves(&self) -> String {
         translate("check-emulator-saves")
+    }
+
+    pub fn check_install_dir_saves(&self) -> String {
+        translate("check-install-dir-saves")
     }
 
     pub fn override_max_threads(&self) -> String {

@@ -19,6 +19,16 @@
     (`scan.emulatorSaveTemplates` in the config file).
     Supported placeholders: `<steamId>`, `<winAppData>`, `<winLocalAppData>`,
     `<winDocuments>`, `<winPublic>`, `<winProgramData>`, `<home>`.
+  * Ludusavi now also checks common save folders inside each game's install directory
+    (`saves`, `save`, `savegames`, `saved`),
+    which covers releases that store saves next to the game files,
+    such as `<GameDir>/saves/<appid>`.
+    You can turn this off with the "check common save folders inside each game's install directory"
+    option on the "other" screen (`scan.installDirSaves` in the config file).
+  * The "find unknown saves" radar is now available in the GUI as well:
+    use the "find unknown saves" button on the "custom games" screen
+    to scan for save-like folders that don't match any known game,
+    then adopt a finding as a custom game with one click.
   * CLI: The new `find-unknown` command scans common save locations
     (Documents, Saved Games, AppData, emulator save folders, and your roots)
     and reports save-like folders that don't match any known game,

@@ -27,3 +27,21 @@ This option is enabled by default.
 If you'd like to disable it,
 you can uncheck "check emulator save locations" on the "other" screen
 or set `scan.emulatorSaves: false` in the config file.
+
+## Install directory saves
+Some releases store saves directly inside the game's install directory instead,
+such as `<GameDir>/saves/<appid>` for HyperVisor-style releases.
+To cover these, Ludusavi also checks a few common save folders
+inside each game's detected install directory:
+
+* `<GameDir>/saves`
+* `<GameDir>/save`
+* `<GameDir>/savegames`
+* `<GameDir>/saved`
+
+Anything found in those folders (including nested subfolders) is backed up.
+
+This option is enabled by default.
+If you'd like to disable it,
+you can uncheck "check common save folders inside each game's install directory" on the "other" screen
+or set `scan.installDirSaves: false` in the config file.

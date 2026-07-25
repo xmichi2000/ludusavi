@@ -113,6 +113,7 @@ properties:
     default:
       emulatorSaves: true
       emulatorSaveTemplates: []
+      installDirSaves: true
       redirectWine: false
       showDeselectedGames: true
       showUnchangedGames: true
@@ -875,6 +876,10 @@ definitions:
         type: array
         items:
           type: string
+      installDirSaves:
+        description: "Also check common save folders inside each game's install directory (saves, save, savegames, saved)."
+        default: true
+        type: boolean
       redirectWine:
         description: Generate best-effort Windows/Wine redirects during scans.
         default: false

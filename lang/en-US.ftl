@@ -67,6 +67,14 @@ button-download = Download
 button-upload = Upload
 button-ignore = Ignore
 button-blacklist = Add to blacklist
+button-find-unknown-saves = Find unknown saves
+# This registers a found save folder as a custom game.
+button-adopt = Adopt
+button-dismiss = Dismiss
+
+# This heads the list of results from the unknown-saves scan.
+label-unknown-saves = Unknown save folders:
+no-unknown-saves-found = No unknown save folders found.
 
 no-roots-are-configured = Add some roots to back up even more data.
 
@@ -228,6 +236,7 @@ show-disabled-games = Show disabled games
 show-unchanged-games = Show unchanged games
 show-unscanned-games = Show unscanned games
 check-emulator-saves = Check emulator save locations (Goldberg, CODEX, etc.)
+check-install-dir-saves = Check common save folders inside each game's install directory (saves, save, savegames, saved)
 override-max-threads = Override max threads
 synchronize-automatically = Synchronize automatically
 prefer-alias-display = Display alias instead of original name

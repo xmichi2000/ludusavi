@@ -17,6 +17,7 @@ use crate::{
     scan::{
         BackupInfo, Launchers, ScanInfo, ScanKind, SteamShortcuts, game_filter,
         layout::{Backup, BackupLayout, GameLayout},
+        radar::UnknownSaveCandidate,
         registry::RegistryItem,
     },
 };
@@ -207,6 +208,14 @@ pub enum Message {
     ModalChangePage(usize),
     ShowCustomGame {
         name: String,
+    },
+    FindUnknownSaves,
+    FoundUnknownSaves(Vec<UnknownSaveCandidate>),
+    AdoptUnknownSave {
+        index: usize,
+    },
+    DismissUnknownSave {
+        index: usize,
     },
     ShowScanActiveGames,
     CopyText(String),
