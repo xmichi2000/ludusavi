@@ -124,6 +124,16 @@ properties:
     default: light
     allOf:
       - $ref: "#/definitions/Theme"
+  watch:
+    default:
+      enabled: false
+      notify: true
+      pollSeconds: 15
+      settleSeconds: 10
+      skipRunningGames: true
+      startWithGui: true
+    allOf:
+      - $ref: "#/definitions/Watch"
 definitions:
   App:
     type: object
@@ -1011,6 +1021,38 @@ definitions:
             type: object
             additionalProperties:
               type: boolean
+  Watch:
+    description: Settings for automatic backups when a game closes.
+    type: object
+    properties:
+      enabled:
+        description: Watch for running games and back up each one when it closes.
+        default: false
+        type: boolean
+      notify:
+        description: Show a desktop notification after an automatic backup and when one fails.
+        default: true
+        type: boolean
+      pollSeconds:
+        description: "How often to check which games are running. Minimum: 5."
+        default: 15
+        type: integer
+        format: uint32
+        minimum: 0.0
+      settleSeconds:
+        description: "Wait this many seconds after a game closes before backing it up, so that the game can finish writing its saves."
+        default: 10
+        type: integer
+        format: uint32
+        minimum: 0.0
+      skipRunningGames:
+        description: "Skip games that are currently running, since their saves may be incomplete. This applies to manual backups as well."
+        default: true
+        type: boolean
+      startWithGui:
+        description: Run the watcher in the background while the GUI is open.
+        default: true
+        type: boolean
   WebDavProvider:
     type: string
     enum:

@@ -28,7 +28,7 @@ use crate::{
     },
     scan::{
         BackupId, DuplicateDetector, Launchers, OperationStepDecision, ScanKind, SteamShortcuts, TitleFinder,
-        TitleQuery, layout::BackupLayout, prepare_backup_target, radar, scan_game_for_backup, semantic,
+        TitleQuery, layout::BackupLayout, prepare_backup_target, radar, scan_game_for_backup, semantic, watcher,
     },
     wrap,
 };
@@ -43,6 +43,36 @@ pub fn show_error(games: &[String], error: &Error, gui: bool, force: bool) {
     } else {
         eprintln!("{message}");
     }
+}
+
+/// Back up a single game, using the same code path as a normal CLI backup,
+/// so that all of the user's settings apply.
+fn back_up_one_game(game: &str, no_manifest_update: bool, try_manifest_update: bool) -> Result<(), Error> {
+    run(
+        Subcommand::Backup {
+            preview: false,
+            path: None,
+            force: true,
+            no_force_cloud_conflict: false,
+            wine_prefix: None,
+            api: false,
+            gui: false,
+            sort: None,
+            format: None,
+            compression: None,
+            compression_level: None,
+            full_limit: None,
+            differential_limit: None,
+            cloud_sync: false,
+            no_cloud_sync: false,
+            dump_registry: false,
+            include_disabled: false,
+            ask_downgrade: false,
+            games: vec![game.to_string()],
+        },
+        no_manifest_update,
+        try_manifest_update,
+    )
 }
 
 fn negatable_flag(on: bool, off: bool, default: bool) -> bool {
@@ -221,6 +251,19 @@ pub fn run(sub: Subcommand, no_manifest_update: bool, try_manifest_update: bool)
                 }
             };
 
+            // Saves may be incomplete while a game is running.
+            let running_games = if config.watch.skip_running_games && !preview {
+                let index = watcher::GameIndex::build(&config, &manifest, &title_finder);
+                watcher::detect_running(&index)
+            } else {
+                Default::default()
+            };
+            if !running_games.is_empty() {
+                let mut skipped: Vec<_> = running_games.iter().cloned().collect();
+                skipped.sort();
+                println!("{}", TRANSLATOR.cli_backup_skipped_running_games(&skipped.join(", ")));
+            }
+
             let launchers = Launchers::scan(&roots, &manifest, &games, &title_finder, None);
             let filter = config.backup.filter.clone();
             let toggled_paths = config.backup.toggled_paths.clone();
@@ -308,6 +351,11 @@ pub fn run(sub: Subcommand, no_manifest_update: bool, try_manifest_update: bool)
 
                 if filter.excludes(games_specified, previous.is_some(), &game.cloud) {
                     log::trace!("[{name}] excluded by backup filter");
+                    return None;
+                }
+
+                if running_games.contains(name) {
+                    log::info!("[{name}] skipped because the game is running");
                     return None;
                 }
 
@@ -918,6 +966,61 @@ pub fn run(sub: Subcommand, no_manifest_update: bool, try_manifest_update: bool)
                 }
             }
         },
+        Subcommand::Watch { once, background: _ } => {
+            let manifest = load_manifest(&config, &mut cache, no_manifest_update, try_manifest_update)?;
+            let layout = BackupLayout::new(config.backup.path.clone());
+            let title_finder = TitleFinder::new(&config, &manifest, layout.restorable_game_set());
+
+            let mut watcher = watcher::Watcher::new();
+            watcher.refresh_index(&config, &manifest, &title_finder);
+
+            if once {
+                watcher.tick();
+                let running = watcher.running_games();
+                if running.is_empty() {
+                    println!("{}", TRANSLATOR.cli_watch_nothing_running());
+                } else {
+                    for game in running {
+                        println!("{game}");
+                    }
+                }
+                return Ok(());
+            }
+
+            println!("{}", TRANSLATOR.cli_watch_started());
+            loop {
+                watcher.refresh_index(&config, &manifest, &title_finder);
+
+                for game in watcher.tick() {
+                    log::info!("[{}] stopped after {}", &game.title, game.label());
+                    std::thread::sleep(std::time::Duration::from_secs(config.watch.settle_seconds as u64));
+
+                    println!("{}", TRANSLATOR.cli_watch_backing_up(&game.title));
+                    match back_up_one_game(&game.title, no_manifest_update, try_manifest_update) {
+                        Ok(_) => {
+                            let mut game_layout = layout.game_layout(&game.title);
+                            game_layout.set_backup_comment(&BackupId::Latest, &game.label());
+                            game_layout.save();
+
+                            if config.watch.notify {
+                                watcher::notify(&TRANSLATOR.cli_watch_backed_up(&game.title), &game.label());
+                            }
+                        }
+                        Err(e) => {
+                            log::error!("[{}] automatic backup failed: {e:?}", &game.title);
+                            if config.watch.notify {
+                                watcher::notify(
+                                    &TRANSLATOR.cli_watch_backup_failed(&game.title),
+                                    &TRANSLATOR.handle_error(&e),
+                                );
+                            }
+                        }
+                    }
+                }
+
+                std::thread::sleep(std::time::Duration::from_secs(config.watch.poll_seconds.max(5) as u64));
+            }
+        }
         Subcommand::Manifest { sub: manifest_sub } => match manifest_sub {
             ManifestSubcommand::Show { api } => {
                 let manifest = load_manifest(&config, &mut cache, true, false).unwrap_or_default();

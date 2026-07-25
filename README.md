@@ -79,6 +79,7 @@ Note:
 Detailed help documentation is available for several topics.
 
 ### General
+* [Automatic backups](/docs/help/automatic-backups.md)
 * [Backup automation](/docs/help/backup-automation.md)
 * [Backup exclusions](/docs/help/backup-exclusions.md)
 * [Backup retention](/docs/help/backup-retention.md)

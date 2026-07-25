@@ -481,6 +481,44 @@ pub fn other<'a>(
                                     Message::config(config::Event::InstallDirSaves),
                                 ))
                                 .push(checkbox(
+                                    TRANSLATOR.watch_enabled(),
+                                    config.watch.enabled,
+                                    Message::config(config::Event::WatchEnabled),
+                                ))
+                                .push_if(config.watch.enabled, || {
+                                    Column::new()
+                                        .spacing(5)
+                                        .padding(padding::left(35))
+                                        .push(checkbox(
+                                            TRANSLATOR.watch_notify(),
+                                            config.watch.notify,
+                                            Message::config(config::Event::WatchNotify),
+                                        ))
+                                        .push(
+                                            Row::new()
+                                                .spacing(20)
+                                                .height(30)
+                                                .align_y(Alignment::Center)
+                                                .push(number_input(
+                                                    config.watch.settle_seconds as i32,
+                                                    TRANSLATOR.watch_settle_seconds(),
+                                                    0..=600,
+                                                    Message::config(|x| config::Event::WatchSettleSeconds(x as u32)),
+                                                ))
+                                                .push(number_input(
+                                                    config.watch.poll_seconds as i32,
+                                                    TRANSLATOR.watch_poll_seconds(),
+                                                    5..=600,
+                                                    Message::config(|x| config::Event::WatchPollSeconds(x as u32)),
+                                                )),
+                                        )
+                                })
+                                .push(checkbox(
+                                    TRANSLATOR.watch_skip_running_games(),
+                                    config.watch.skip_running_games,
+                                    Message::config(config::Event::WatchSkipRunningGames),
+                                ))
+                                .push(checkbox(
                                     TRANSLATOR.field(&TRANSLATOR.explanation_for_exclude_cloud_games()),
                                     config.backup.filter.cloud.exclude,
                                     Message::config(move |exclude| {

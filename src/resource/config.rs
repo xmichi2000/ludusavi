@@ -1,4 +1,4 @@
-pub mod root;
+﻿pub mod root;
 
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap, HashSet},
@@ -107,6 +107,11 @@ pub enum Event {
     CloudPath(String),
     SortCustomGames,
     OnlyConstructiveBackups(bool),
+    WatchEnabled(bool),
+    WatchNotify(bool),
+    WatchSkipRunningGames(bool),
+    WatchSettleSeconds(u32),
+    WatchPollSeconds(u32),
 }
 
 /// Settings for `config.yaml`
@@ -123,6 +128,7 @@ pub struct Config {
     pub backup: BackupConfig,
     pub restore: RestoreConfig,
     pub scan: Scan,
+    pub watch: Watch,
     pub cloud: Cloud,
     pub apps: Apps,
     pub custom_games: Vec<CustomGame>,
@@ -1224,6 +1230,39 @@ impl Default for Scan {
     }
 }
 
+/// Settings for automatic backups when a game closes.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
+#[serde(default, rename_all = "camelCase")]
+pub struct Watch {
+    /// Watch for running games and back up each one when it closes.
+    pub enabled: bool,
+    /// Show a desktop notification after an automatic backup and when one fails.
+    pub notify: bool,
+    /// Skip games that are currently running, since their saves may be incomplete.
+    /// This applies to manual backups as well.
+    pub skip_running_games: bool,
+    /// Wait this many seconds after a game closes before backing it up,
+    /// so that the game can finish writing its saves.
+    pub settle_seconds: u32,
+    /// How often to check which games are running. Minimum: 5.
+    pub poll_seconds: u32,
+    /// Run the watcher in the background while the GUI is open.
+    pub start_with_gui: bool,
+}
+
+impl Default for Watch {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            notify: true,
+            skip_running_games: true,
+            settle_seconds: 10,
+            poll_seconds: 15,
+            start_with_gui: true,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Cloud {
@@ -1469,6 +1508,7 @@ impl ResourceFile for Config {
         }
         self.custom_games.retain(|x| !x.is_empty());
         self.blacklisted_games.retain(|x| !x.trim().is_empty());
+        self.watch.poll_seconds = self.watch.poll_seconds.max(5);
         self.scan.emulator_save_templates.retain(|x| !x.trim().is_empty());
 
         if self.apps.rclone.path.raw().is_empty() {
@@ -2375,6 +2415,7 @@ mod tests {
                     emulator_save_templates: vec![],
                     install_dir_saves: true,
                 },
+                watch: Default::default(),
                 cloud: Cloud {
                     remote: Some(Remote::GoogleDrive {
                         id: "remote-id".to_string()
@@ -2508,6 +2549,13 @@ scan:
   emulatorSaves: false
   emulatorSaveTemplates: []
   installDirSaves: false
+watch:
+  enabled: false
+  notify: true
+  skipRunningGames: true
+  settleSeconds: 10
+  pollSeconds: 15
+  startWithGui: true
 cloud:
   remote:
     GoogleDrive:
@@ -2610,6 +2658,7 @@ blacklistedGames:
                     emulator_save_templates: vec![],
                     install_dir_saves: false,
                 },
+                watch: Default::default(),
                 cloud: Cloud {
                     remote: Some(Remote::GoogleDrive {
                         id: "remote-id".to_string()

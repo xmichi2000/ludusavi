@@ -252,6 +252,16 @@ fn main() {
             let gui = sub.gui();
             let force = sub.force();
 
+            // The watcher is meant to run unattended, so it can hide its console.
+            #[cfg(target_os = "windows")]
+            if matches!(sub, cli::parse::Subcommand::Watch { background: true, .. })
+                && std::env::var(crate::prelude::ENV_DEBUG).is_err()
+            {
+                unsafe {
+                    detach_console(debug);
+                }
+            }
+
             if let Err(e) = cli::run(sub, args.no_manifest_update, args.try_manifest_update) {
                 failed = true;
                 cli::show_error(&[], &e, gui, force);

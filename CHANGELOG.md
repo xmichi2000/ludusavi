@@ -35,6 +35,16 @@
     so that nothing slips through the cracks.
     You can register a found folder as a custom game
     with the `--adopt` and `--name` options.
+  * Ludusavi can now back up a game automatically when you close it.
+    Enable the "back up automatically when a game closes" option on the "other" screen
+    (`watch.enabled` in the config file), or use the new `watch` command.
+    Each automatic backup is commented with the date and how long you played.
+    On Windows, `ludusavi watch --background` runs without a console window,
+    which is useful for starting it when you log in.
+  * Games that are currently running are now skipped during backups,
+    since their saves may be incomplete.
+    You can change this with the "skip games that are currently running" option
+    (`watch.skipRunningGames` in the config file).
   * Backup retention can now be time-based:
     instead of keeping a fixed number of full backups,
     Ludusavi can keep every backup generation from the last few days,

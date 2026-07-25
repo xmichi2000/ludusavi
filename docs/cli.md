@@ -19,6 +19,8 @@ Commands:
           Find game titles
   find-unknown
           Find save-like folders that don't match any known game
+  watch
+          Watch for running games and back up each one when it closes
   manifest
           Options for Ludusavi's data set
   config
@@ -362,6 +364,29 @@ Options:
 
       --name <NAME>
           Title to use for the custom game adopted via `--adopt`
+
+  -h, --help
+          Print help (see a summary with '-h')
+```
+
+## `watch --help`
+```
+Watch for running games and back up each one when it closes.
+
+This keeps running until you stop it, so you may want to launch it when you log in. The `watch`
+section of the config file controls its behavior.
+
+This command automatically updates the manifest if necessary.
+
+Usage: ludusavi.exe watch [OPTIONS]
+
+Options:
+      --once
+          Report which games are running right now, then exit
+
+      --background
+          Detach from the console on startup, so that no window remains visible. This is useful when
+          launching Ludusavi automatically when you log in
 
   -h, --help
           Print help (see a summary with '-h')

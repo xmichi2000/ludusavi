@@ -47,29 +47,34 @@ fn fuzzy_match(
         }
     }
 
-    // Fall back to comparing normalized forms in both directions.
-    // This tolerates punctuation differences and extra tokens on either side,
-    // such as release group suffixes in folder names (e.g. "Some Game HV").
+    // Fall back to comparing normalized forms.
+    // This tolerates punctuation differences and extra tokens in the folder name,
+    // such as release group suffixes (e.g. "Some Game HV").
+    // Note that we only look for the title within the folder name, not vice versa,
+    // since a short folder name (like a launcher's "Launcher" folder)
+    // would otherwise match all sorts of longer titles.
     let normalized_reference = crate::scan::title::normalize_title(reference);
     let normalized_candidate = crate::scan::title::normalize_title(&candidate);
-    // Very short names would match too eagerly as a subsequence of each other.
+    // Very short names would match too eagerly as a subsequence.
     if normalized_reference.len() < 5 || normalized_candidate.len() < 5 {
         return None;
     }
     if normalized_reference == normalized_candidate {
         return Some(i64::MAX);
     }
-    for (choice, pattern) in [
-        (&normalized_candidate, &normalized_reference),
-        (&normalized_reference, &normalized_candidate),
-    ] {
-        if let (Some(ideal), Some(actual)) = (
-            matcher.fuzzy_match(pattern, pattern),
-            matcher.fuzzy_match(choice, pattern),
-        ) && actual > (ideal / 4 * 3)
-        {
-            return Some(actual);
-        }
+    // The fallback is meant for a title plus a modest suffix,
+    // so a much longer folder name is not a plausible match.
+    // (Without this, long generated folder names, such as in `WindowsApps`,
+    // would contain all sorts of titles as a subsequence.)
+    if normalized_candidate.len() > normalized_reference.len() * 3 / 2 + 8 {
+        return None;
+    }
+    if let (Some(ideal), Some(actual)) = (
+        matcher.fuzzy_match(&normalized_reference, &normalized_reference),
+        matcher.fuzzy_match(&normalized_candidate, &normalized_reference),
+    ) && actual > (ideal / 4 * 3)
+    {
+        return Some(actual);
     }
     None
 }
@@ -252,6 +257,9 @@ mod tests {
             ("A Fun Game", "A Fun Game HV Repack", true),
             ("A Fun Game: Special Edition", "A Fun Game", true),
             ("A Fun Game", "Another Title Entirely", false),
+            // A short folder name must not match a much longer title.
+            ("Go For Launch: Mercury", "Launcher", false),
+            ("A Fun Game With A Long Name", "Games", false),
         ] {
             assert_eq!(
                 matched,

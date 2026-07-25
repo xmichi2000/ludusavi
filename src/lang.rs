@@ -517,6 +517,58 @@ impl Translator {
         translate_args("cli-find-unknown-adopted", &args)
     }
 
+    pub fn watch_enabled(&self) -> String {
+        translate("check-watch-enabled")
+    }
+
+    pub fn watch_notify(&self) -> String {
+        translate("check-watch-notify")
+    }
+
+    pub fn watch_skip_running_games(&self) -> String {
+        translate("check-watch-skip-running-games")
+    }
+
+    pub fn watch_settle_seconds(&self) -> String {
+        translate("field-watch-settle-seconds")
+    }
+
+    pub fn watch_poll_seconds(&self) -> String {
+        translate("field-watch-poll-seconds")
+    }
+
+    pub fn cli_backup_skipped_running_games(&self, games: &str) -> String {
+        let mut args = FluentArgs::new();
+        args.set(GAME, games);
+        translate_args("cli-backup-skipped-running-games", &args)
+    }
+
+    pub fn cli_watch_started(&self) -> String {
+        translate("cli-watch-started")
+    }
+
+    pub fn cli_watch_nothing_running(&self) -> String {
+        translate("cli-watch-nothing-running")
+    }
+
+    pub fn cli_watch_backing_up(&self, game: &str) -> String {
+        let mut args = FluentArgs::new();
+        args.set(GAME, game);
+        translate_args("cli-watch-backing-up", &args)
+    }
+
+    pub fn cli_watch_backed_up(&self, game: &str) -> String {
+        let mut args = FluentArgs::new();
+        args.set(GAME, game);
+        translate_args("cli-watch-backed-up", &args)
+    }
+
+    pub fn cli_watch_backup_failed(&self, game: &str) -> String {
+        let mut args = FluentArgs::new();
+        args.set(GAME, game);
+        translate_args("cli-watch-backup-failed", &args)
+    }
+
     pub fn cli_unable_to_request_confirmation(&self) -> String {
         #[cfg(target_os = "windows")]
         let extra_note = translate("cli-unable-to-request-confirmation.winpty-workaround");

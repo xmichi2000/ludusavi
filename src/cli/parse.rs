@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+﻿use std::path::PathBuf;
 
 use crate::{
     cloud::WebDavProvider,
@@ -445,6 +445,23 @@ pub enum Subcommand {
         #[clap(long, requires = "adopt")]
         name: Option<String>,
     },
+    /// Watch for running games and back up each one when it closes.
+    ///
+    /// This keeps running until you stop it,
+    /// so you may want to launch it when you log in.
+    /// The `watch` section of the config file controls its behavior.
+    ///
+    /// This command automatically updates the manifest if necessary.
+    Watch {
+        /// Report which games are running right now, then exit.
+        #[clap(long)]
+        once: bool,
+
+        /// Detach from the console on startup, so that no window remains visible.
+        /// This is useful when launching Ludusavi automatically when you log in.
+        #[clap(long)]
+        background: bool,
+    },
     /// Options for Ludusavi's data set.
     Manifest {
         #[clap(subcommand)]
@@ -600,6 +617,7 @@ impl Subcommand {
             Self::Backups { .. } => false,
             Self::Find { .. } => false,
             Self::FindUnknown { .. } => false,
+            Self::Watch { .. } => false,
             Self::Manifest { .. } => false,
             Self::Config { .. } => false,
             Self::Cloud { sub } => sub.force(),
@@ -618,6 +636,7 @@ impl Subcommand {
             Self::Backups { .. } => false,
             Self::Find { .. } => false,
             Self::FindUnknown { .. } => false,
+            Self::Watch { .. } => false,
             Self::Manifest { .. } => false,
             Self::Config { .. } => false,
             Self::Cloud { sub } => sub.gui(),

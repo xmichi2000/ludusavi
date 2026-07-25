@@ -11,6 +11,7 @@ pub mod saves;
 pub mod semantic;
 pub mod steam;
 pub mod title;
+pub mod watcher;
 
 use std::{
     collections::{HashMap, HashSet},

@@ -130,6 +130,17 @@ field-retention-full = Full:
 field-retention-differential = Differential:
 # This appears next to a checkbox for deleting old backups based on their age
 # instead of based on the number of full backups to keep.
+check-watch-enabled = Back up automatically when a game closes
+check-watch-notify = Show a notification after each automatic backup
+check-watch-skip-running-games = Skip games that are currently running
+field-watch-settle-seconds = Wait after closing (seconds):
+field-watch-poll-seconds = Check every (seconds):
+cli-backup-skipped-running-games = Skipped because these games are running: { $game }
+cli-watch-started = Watching for running games. Press ctrl+C to stop.
+cli-watch-nothing-running = No known games are running right now.
+cli-watch-backing-up = Backing up { $game }...
+cli-watch-backed-up = Backed up { $game }
+cli-watch-backup-failed = Unable to back up { $game }
 field-retention-time-based = Time-based:
 # This appears next to the number of days for which every backup is kept.
 field-retention-keep-all-days = Keep all (days):

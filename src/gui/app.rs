@@ -2002,6 +2002,21 @@ impl App {
                     config::Event::DiffRetention(value) => {
                         self.config.backup.retention.differential = value;
                     }
+                    config::Event::WatchEnabled(value) => {
+                        self.config.watch.enabled = value;
+                    }
+                    config::Event::WatchNotify(value) => {
+                        self.config.watch.notify = value;
+                    }
+                    config::Event::WatchSkipRunningGames(value) => {
+                        self.config.watch.skip_running_games = value;
+                    }
+                    config::Event::WatchSettleSeconds(value) => {
+                        self.config.watch.settle_seconds = value;
+                    }
+                    config::Event::WatchPollSeconds(value) => {
+                        self.config.watch.poll_seconds = value.max(5);
+                    }
                     config::Event::TimeBasedRetentionEnabled(enabled) => {
                         self.config.backup.retention.time_based =
                             enabled.then(|| self.config.backup.retention.time_based.unwrap_or_default());
