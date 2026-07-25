@@ -45,6 +45,9 @@
     since their saves may be incomplete.
     You can change this with the "skip games that are currently running" option
     (`watch.skipRunningGames` in the config file).
+  * When choosing which backup to restore,
+    the list now shows each backup's comment along with its date,
+    so you can tell your restore points apart at a glance.
   * Backup retention can now be time-based:
     instead of keeping a fixed number of full backups,
     Ludusavi can keep every backup generation from the last few days,
@@ -56,6 +59,10 @@
     This is supported for Wine specifically, not any other native Linux paths.
     Currently, this only translates file paths, not the registry.
     ([Contributed by thedavidweng](https://github.com/mtkennerly/ludusavi/pull/614))
+* Changed:
+  * Backup validation now also verifies that each backed up file still has
+    the content that was backed up, rather than only checking that the file
+    is present, so that it can detect damaged backups.
 * Fixed:
   * Two distinct drives whose escaped folder names collided (such as the UNC
     shares `\\a_b\c` and `\\a\b_c`) would share one backup folder, so saves from

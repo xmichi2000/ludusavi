@@ -25,6 +25,8 @@ pub struct FinishedGame {
 
 impl FinishedGame {
     /// Human-readable summary of the play session, used as a backup comment.
+    /// The backup itself is already labeled with its date,
+    /// so this only describes how long the session lasted.
     pub fn label(&self) -> String {
         let minutes = (self.stopped - self.started).num_minutes().max(0);
         let duration = if minutes >= 60 {
@@ -32,7 +34,7 @@ impl FinishedGame {
         } else {
             format!("{minutes}m")
         };
-        format!("Session {} ({})", self.started.format("%Y-%m-%d %H:%M"), duration)
+        format!("Session ({duration})")
     }
 }
 
@@ -331,7 +333,7 @@ mod tests {
     #[test]
     fn can_describe_a_session() {
         assert_eq!(
-            "Session 2024-06-30 09:30 (1h 30m)",
+            "Session (1h 30m)",
             FinishedGame {
                 title: "Some Game".to_string(),
                 started: time(9, 30),
@@ -341,7 +343,7 @@ mod tests {
         );
 
         assert_eq!(
-            "Session 2024-06-30 09:30 (25m)",
+            "Session (25m)",
             FinishedGame {
                 title: "Some Game".to_string(),
                 started: time(9, 30),

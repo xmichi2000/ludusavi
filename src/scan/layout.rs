@@ -111,6 +111,34 @@ fn plan_time_based_retention<T: Copy>(
     deletions
 }
 
+/// Whether a stored file still has the content that we backed up.
+/// An empty recorded hash means that we don't know, so we accept the file.
+fn file_matches_hash(stored: &StrictPath, hash: &str) -> bool {
+    hash.is_empty() || stored.try_sha1().map(|actual| actual == hash).unwrap_or(false)
+}
+
+/// Whether a file inside a zip backup still has the content that we backed up.
+fn zip_entry_matches_hash(entry: &mut impl std::io::Read, hash: &str) -> bool {
+    use sha1::Digest;
+
+    if hash.is_empty() {
+        return true;
+    }
+
+    let mut hasher = sha1::Sha1::new();
+    let mut buffer = [0; 8192];
+    loop {
+        match entry.read(&mut buffer) {
+            Ok(0) => break,
+            Ok(read) => hasher.update(&buffer[..read]),
+            // This also covers a failed CRC check.
+            Err(_) => return false,
+        }
+    }
+
+    format!("{:x}", hasher.finalize()) == hash
+}
+
 pub struct LatestBackup {
     pub scan: ScanInfo,
     pub when: chrono::DateTime<chrono::Utc>,
@@ -277,8 +305,13 @@ impl Backup {
 }
 
 impl ToString for Backup {
+    /// This is how a backup is presented when choosing one to restore,
+    /// so we include the comment to make the choice meaningful.
     fn to_string(&self) -> String {
-        self.label()
+        match self.comment() {
+            Some(comment) if !comment.is_empty() => format!("{} - {}", self.label(), comment),
+            _ => self.label(),
+        }
     }
 }
 
@@ -2169,7 +2202,7 @@ impl GameLayout {
         if let Some((backup, diff)) = self.find_by_id(&backup_id) {
             match backup.format() {
                 BackupFormat::Simple => {
-                    for file in backup.files.keys() {
+                    for (file, data) in &backup.files {
                         let original_path = StrictPath::new(file.to_string());
                         let stored = self
                             .mapping
@@ -2177,6 +2210,11 @@ impl GameLayout {
                         if !stored.is_file() {
                             #[cfg(test)]
                             eprintln!("can't find {}", stored.render());
+                            return false;
+                        }
+                        if !file_matches_hash(&stored, &data.hash) {
+                            #[cfg(test)]
+                            eprintln!("content has changed: {}", stored.render());
                             return false;
                         }
                     }
@@ -2189,12 +2227,17 @@ impl GameLayout {
                         return false;
                     };
 
-                    for file in backup.files.keys() {
+                    for (file, data) in &backup.files {
                         let original_path = StrictPath::new(file.to_string());
                         let stored = self.mapping.game_file_for_zip_immutable(&original_path);
-                        if archive.by_name(&stored).is_err() {
+                        let Ok(mut entry) = archive.by_name(&stored) else {
                             #[cfg(test)]
                             eprintln!("can't find {stored}");
+                            return false;
+                        };
+                        if !zip_entry_matches_hash(&mut entry, &data.hash) {
+                            #[cfg(test)]
+                            eprintln!("content has changed: {stored}");
                             return false;
                         }
                     }
@@ -2219,6 +2262,13 @@ impl GameLayout {
                                 eprintln!("can't find {}", stored.render());
                                 return false;
                             }
+                            if let Some(data) = data
+                                && !file_matches_hash(&stored, &data.hash)
+                            {
+                                #[cfg(test)]
+                                eprintln!("content has changed: {}", stored.render());
+                                return false;
+                            }
                         }
                     }
                     BackupFormat::Zip => {
@@ -2230,16 +2280,21 @@ impl GameLayout {
                         };
 
                         for (file, data) in &backup.files {
-                            if data.is_none() {
+                            let Some(data) = data else {
                                 // File is deliberately omitted.
                                 continue;
-                            }
+                            };
 
                             let original_path = StrictPath::new(file.to_string());
                             let stored = self.mapping.game_file_for_zip_immutable(&original_path);
-                            if archive.by_name(&stored).is_err() {
+                            let Ok(mut entry) = archive.by_name(&stored) else {
                                 #[cfg(test)]
                                 eprintln!("can't find {stored}");
+                                return false;
+                            };
+                            if !zip_entry_matches_hash(&mut entry, &data.hash) {
+                                #[cfg(test)]
+                                eprintln!("content has changed: {stored}");
                                 return false;
                             }
                         }
@@ -3923,6 +3978,26 @@ mod tests {
                 path: StrictPath::new(format!("{}/tests/backup/game1", repo_raw())),
             };
             assert!(layout.validate(BackupId::Latest));
+        }
+
+        #[test]
+        fn can_validate_a_simple_full_backup_when_content_has_changed() {
+            let layout = GameLayout {
+                mapping: IndividualMapping {
+                    drives: drives_x_always(),
+                    backups: VecDeque::from(vec![FullBackup {
+                        name: SOLO.into(),
+                        files: btree_map! {
+                            // The file is present, but no longer has the content that we backed up.
+                            mapping_file_key(r"\file1.txt"): IndividualMappingFile { hash: "0000000000000000000000000000000000000000".into(), size: 1 },
+                        },
+                        ..Default::default()
+                    }]),
+                    ..Default::default()
+                },
+                path: StrictPath::new(format!("{}/tests/backup/game1", repo_raw())),
+            };
+            assert!(!layout.validate(BackupId::Latest));
         }
 
         #[test]
