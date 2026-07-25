@@ -216,6 +216,7 @@ reverse-redirects-when-restoring = Reverse sequence of redirects when restoring
 show-disabled-games = Show disabled games
 show-unchanged-games = Show unchanged games
 show-unscanned-games = Show unscanned games
+check-emulator-saves = Check emulator save locations (Goldberg, CODEX, etc.)
 override-max-threads = Override max threads
 synchronize-automatically = Synchronize automatically
 prefer-alias-display = Display alias instead of original name

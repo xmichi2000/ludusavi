@@ -321,6 +321,7 @@ pub fn run(sub: Subcommand, no_manifest_update: bool, try_manifest_update: bool)
                     config.restore.reverse_redirects,
                     &steam_shortcuts,
                     config.backup.only_constructive,
+                    config.scan.emulator_saves,
                 );
                 let ignored = !&config.is_game_enabled_for_backup(name) && !games_specified && !include_disabled;
                 let decision = if ignored {

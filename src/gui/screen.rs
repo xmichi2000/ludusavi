@@ -419,6 +419,11 @@ pub fn other<'a>(
                                     Message::config(config::Event::ShowUnscannedGames),
                                 ))
                                 .push(checkbox(
+                                    TRANSLATOR.check_emulator_saves(),
+                                    config.scan.emulator_saves,
+                                    Message::config(config::Event::EmulatorSaves),
+                                ))
+                                .push(checkbox(
                                     TRANSLATOR.field(&TRANSLATOR.explanation_for_exclude_cloud_games()),
                                     config.backup.filter.cloud.exclude,
                                     Message::config(move |exclude| {

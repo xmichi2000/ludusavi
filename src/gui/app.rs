@@ -545,6 +545,7 @@ impl App {
                                     config.restore.reverse_redirects,
                                     &steam_shortcuts,
                                     config.backup.only_constructive,
+                                    config.scan.emulator_saves,
                                 );
                                 if !config.is_game_enabled_for_backup(&key) && !single {
                                     return (Some(scan_info), None);
@@ -1991,6 +1992,9 @@ impl App {
                     }
                     config::Event::ShowUnscannedGames(value) => {
                         self.config.scan.show_unscanned_games = value;
+                    }
+                    config::Event::EmulatorSaves(value) => {
+                        self.config.scan.emulator_saves = value;
                     }
                     config::Event::OverrideMaxThreads(overridden) => {
                         self.config.override_threads(overridden);

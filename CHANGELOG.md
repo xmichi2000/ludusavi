@@ -6,6 +6,11 @@
     Use the three-dot menu next to a game's title,
     the "blacklisted games" section on the "other" screen,
     or the CLI's `config blacklist` command.
+  * For games with a Steam ID, Ludusavi now also checks well-known emulator save locations
+    (Goldberg/GSE, SmartSteamEmu, CODEX, RUNE, OnlineFix, EMPRESS),
+    so that saves from emulator-based installations are backed up and restored as well.
+    You can turn this off with the "check emulator save locations" option on the "other" screen
+    (`scan.emulatorSaves` in the config file).
   * Ludusavi can now translate native Windows paths into Wine prefixes and vice versa.
     During a scan, these will appear like any other redirected path.
     This is supported for Wine specifically, not any other native Linux paths.

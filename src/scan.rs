@@ -524,6 +524,35 @@ pub fn parse_paths(
         .collect()
 }
 
+/// Well-known Steam emulator save locations.
+/// Each entry is a base folder plus a subfolder within it,
+/// which in turn contains one folder per Steam app ID.
+const EMULATOR_SAVE_LOCATIONS: &[(CommonPath, &str)] = &[
+    (CommonPath::Data, "Goldberg SteamEmu Saves"),
+    (CommonPath::Data, "GSE Saves"),
+    (CommonPath::Data, "SmartSteamEmu"),
+    (CommonPath::Document, "Steam/CODEX"),
+    (CommonPath::Public, "Documents/Steam/CODEX"),
+    (CommonPath::Document, "Steam/RUNE"),
+    (CommonPath::Public, "Documents/Steam/RUNE"),
+    (CommonPath::Document, "OnlineFix"),
+    (CommonPath::Public, "Documents/OnlineFix"),
+    (CommonPath::Document, "EMPRESS"),
+    (CommonPath::Public, "Documents/EMPRESS"),
+];
+
+/// Glob patterns for well-known emulator save locations (Goldberg, CODEX, etc.)
+/// associated with a specific Steam app ID.
+pub fn emulator_save_paths(steam_id: u32) -> Vec<String> {
+    EMULATOR_SAVE_LOCATIONS
+        .iter()
+        .filter_map(|(base, folder)| {
+            let base = base.get_globbable()?;
+            Some(format!("{base}/{folder}/{steam_id}"))
+        })
+        .collect()
+}
+
 pub fn scan_game_for_backup(
     game: &Game,
     name: &str,
@@ -539,6 +568,7 @@ pub fn scan_game_for_backup(
     reverse_redirects_on_restore: bool,
     steam_shortcuts: &SteamShortcuts,
     only_constructive_backups: bool,
+    emulator_saves: bool,
 ) -> ScanInfo {
     log::trace!("[{name}] beginning scan for backup");
 
@@ -683,6 +713,17 @@ pub fn scan_game_for_backup(
                         None,
                     ));
                 }
+            }
+        }
+    }
+
+    if emulator_saves {
+        for id in all_ids.steam(steam_shortcut.map(|x| x.id)) {
+            for candidate in emulator_save_paths(id) {
+                paths_to_check.insert((
+                    StrictPath::relative(candidate, Some(manifest_dir_globbable.clone())),
+                    None,
+                ));
             }
         }
     }
@@ -1101,6 +1142,7 @@ mod tests {
     };
 
     const ONLY_CONSTRUCTIVE: bool = false;
+    const EMULATOR_SAVES: bool = false;
 
     fn wine_semantics(prefix: &str) -> BackupSemantics {
         BackupSemantics {
@@ -1291,6 +1333,26 @@ mod tests {
     }
 
     #[test]
+    fn can_generate_emulator_save_paths() {
+        let paths = emulator_save_paths(123);
+
+        assert!(paths.iter().all(|x| x.ends_with("/123")));
+        assert!(!paths.iter().any(|x| x.contains('<')));
+
+        #[cfg(target_os = "windows")]
+        {
+            assert_eq!(EMULATOR_SAVE_LOCATIONS.len(), paths.len());
+            assert!(paths.iter().any(|x| x.ends_with("/Goldberg SteamEmu Saves/123")));
+            assert!(paths.iter().any(|x| x.ends_with("/GSE Saves/123")));
+            assert!(paths.iter().any(|x| x.ends_with("/SmartSteamEmu/123")));
+            assert!(paths.iter().any(|x| x.ends_with("/Steam/CODEX/123")));
+            assert!(paths.iter().any(|x| x.ends_with("/Steam/RUNE/123")));
+            assert!(paths.iter().any(|x| x.ends_with("/OnlineFix/123")));
+            assert!(paths.iter().any(|x| x.ends_with("/EMPRESS/123")));
+        }
+    }
+
+    #[test]
     fn can_scan_game_for_backup_with_file_matches() {
         assert_eq!(
             ScanInfo {
@@ -1317,6 +1379,7 @@ mod tests {
                 false,
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
+                EMULATOR_SAVES,
             ),
         );
 
@@ -1344,6 +1407,7 @@ mod tests {
                 false,
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
+                EMULATOR_SAVES,
             ),
         );
     }
@@ -1375,6 +1439,7 @@ mod tests {
                 false,
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
+                EMULATOR_SAVES,
             ),
         );
     }
@@ -1418,6 +1483,7 @@ mod tests {
                 false,
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
+                EMULATOR_SAVES,
             ),
         );
     }
@@ -1449,6 +1515,7 @@ mod tests {
                 false,
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
+                EMULATOR_SAVES,
             ),
         );
     }
@@ -1494,6 +1561,7 @@ mod tests {
                 false,
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
+                EMULATOR_SAVES,
             ),
         );
     }
@@ -1529,6 +1597,7 @@ mod tests {
                 false,
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
+                EMULATOR_SAVES,
             ),
         );
     }
@@ -1563,6 +1632,7 @@ mod tests {
                 false,
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
+                EMULATOR_SAVES,
             ),
         );
     }
@@ -1594,6 +1664,7 @@ mod tests {
                 false,
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
+                EMULATOR_SAVES,
             ),
         );
     }
@@ -1625,6 +1696,7 @@ mod tests {
                 false,
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
+                EMULATOR_SAVES,
             ),
         );
     }
@@ -1663,6 +1735,7 @@ mod tests {
                 false,
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
+                EMULATOR_SAVES,
             ),
         );
     }
@@ -1703,6 +1776,7 @@ mod tests {
                 false,
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
+                EMULATOR_SAVES,
             ),
         );
     }
@@ -1743,6 +1817,7 @@ mod tests {
                 false,
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
+                EMULATOR_SAVES,
             ),
         );
     }
@@ -1785,6 +1860,7 @@ mod tests {
             false,
             &Default::default(),
             ONLY_CONSTRUCTIVE,
+            EMULATOR_SAVES,
         );
 
         assert_eq!(
@@ -1836,6 +1912,7 @@ mod tests {
             false,
             &Default::default(),
             ONLY_CONSTRUCTIVE,
+            EMULATOR_SAVES,
         );
 
         assert_eq!(
@@ -1889,6 +1966,7 @@ mod tests {
                 false,
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
+                EMULATOR_SAVES,
             ),
         );
     }
@@ -1947,6 +2025,7 @@ mod tests {
                 false,
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
+                EMULATOR_SAVES,
             ),
         );
     }
@@ -2078,6 +2157,7 @@ mod tests {
                     false,
                     &Default::default(),
                     ONLY_CONSTRUCTIVE,
+                    EMULATOR_SAVES,
                 ),
             );
         }
@@ -2115,6 +2195,7 @@ mod tests {
                 false,
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
+                EMULATOR_SAVES,
             ),
         );
     }
@@ -2151,6 +2232,7 @@ mod tests {
                 false,
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
+                EMULATOR_SAVES,
             ),
         );
     }
@@ -2198,6 +2280,7 @@ mod tests {
                 false,
                 &Default::default(),
                 ONLY_CONSTRUCTIVE,
+                EMULATOR_SAVES,
             ),
         );
     }

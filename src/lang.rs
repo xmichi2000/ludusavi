@@ -1150,6 +1150,10 @@ impl Translator {
         translate("show-unscanned-games")
     }
 
+    pub fn check_emulator_saves(&self) -> String {
+        translate("check-emulator-saves")
+    }
+
     pub fn override_max_threads(&self) -> String {
         format!(
             "{} ({})",

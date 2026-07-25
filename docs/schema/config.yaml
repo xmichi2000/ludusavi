@@ -111,6 +111,7 @@ properties:
       - $ref: "#/definitions/Runtime"
   scan:
     default:
+      emulatorSaves: true
       redirectWine: false
       showDeselectedGames: true
       showUnchangedGames: true
@@ -863,6 +864,10 @@ definitions:
   Scan:
     type: object
     properties:
+      emulatorSaves:
+        description: "Also check well-known emulator save locations (Goldberg, CODEX, etc.) for games with a Steam ID."
+        default: true
+        type: boolean
       redirectWine:
         description: Generate best-effort Windows/Wine redirects during scans.
         default: false

@@ -234,6 +234,7 @@ impl Ludusavi {
                 self.config.restore.reverse_redirects,
                 &self.steam_shortcuts,
                 self.config.backup.only_constructive,
+                self.config.scan.emulator_saves,
             );
             let ignored = !&self.config.is_game_enabled_for_backup(name) && !games_specified && !include_disabled;
             let decision = if ignored {

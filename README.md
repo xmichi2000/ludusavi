@@ -87,6 +87,7 @@ Detailed help documentation is available for several topics.
 * [Cloud backup](/docs/help/cloud-backup.md)
 * [Custom games](/docs/help/custom-games.md)
 * [Duplicates](/docs/help/duplicates.md)
+* [Emulator saves](/docs/help/emulator-saves.md)
 * [Filter](/docs/help/filter.md)
 * [Game launch wrapping](/docs/help/game-launch-wrapping.md)
 * [Redirects](/docs/help/redirects.md)

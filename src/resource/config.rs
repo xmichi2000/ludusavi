@@ -92,6 +92,7 @@ pub enum Event {
     ShowDeselectedGames(bool),
     ShowUnchangedGames(bool),
     ShowUnscannedGames(bool),
+    EmulatorSaves(bool),
     OverrideMaxThreads(bool),
     MaxThreads(usize),
     RcloneExecutable(String),
@@ -1154,6 +1155,8 @@ pub struct Scan {
     pub show_unscanned_games: bool,
     /// Generate best-effort Windows/Wine redirects during scans.
     pub redirect_wine: bool,
+    /// Also check well-known emulator save locations (Goldberg, CODEX, etc.) for games with a Steam ID.
+    pub emulator_saves: bool,
 }
 
 impl Default for Scan {
@@ -1163,6 +1166,7 @@ impl Default for Scan {
             show_unchanged_games: true,
             show_unscanned_games: true,
             redirect_wine: false,
+            emulator_saves: true,
         }
     }
 }
@@ -2206,6 +2210,7 @@ mod tests {
               showDeselectedGames: false
               showUnchangedGames: false
               showUnscannedGames: false
+              emulatorSaves: false
             cloud:
               remote:
                 GoogleDrive:
@@ -2296,6 +2301,7 @@ mod tests {
                     show_unchanged_games: false,
                     show_unscanned_games: false,
                     redirect_wine: false,
+                    emulator_saves: false,
                 },
                 cloud: Cloud {
                     remote: Some(Remote::GoogleDrive {
@@ -2427,6 +2433,7 @@ scan:
   showUnchangedGames: false
   showUnscannedGames: false
   redirectWine: false
+  emulatorSaves: false
 cloud:
   remote:
     GoogleDrive:
@@ -2525,6 +2532,7 @@ blacklistedGames:
                     show_unchanged_games: false,
                     show_unscanned_games: false,
                     redirect_wine: false,
+                    emulator_saves: false,
                 },
                 cloud: Cloud {
                     remote: Some(Remote::GoogleDrive {
