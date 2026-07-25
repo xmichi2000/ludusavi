@@ -53,6 +53,7 @@ pub enum Event {
     CloudFilter(CloudFilter),
     BackupFilterIgnoredPath(EditAction),
     BackupFilterIgnoredRegistry(EditAction),
+    BlacklistedGame(EditAction),
     GameListEntryEnabled {
         name: String,
         enabled: bool,
@@ -118,6 +119,8 @@ pub struct Config {
     pub cloud: Cloud,
     pub apps: Apps,
     pub custom_games: Vec<CustomGame>,
+    /// Games to completely hide from scans and the interface.
+    pub blacklisted_games: BTreeSet<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
@@ -1408,6 +1411,7 @@ impl ResourceFile for Config {
             item.wine_prefix.retain(|x| !x.trim().is_empty());
         }
         self.custom_games.retain(|x| !x.is_empty());
+        self.blacklisted_games.retain(|x| !x.trim().is_empty());
 
         if self.apps.rclone.path.raw().is_empty() {
             self.apps.rclone.path = App::default_rclone().path;
@@ -1654,6 +1658,18 @@ impl Config {
         self.restore.ignored_games.insert(name.to_owned());
     }
 
+    pub fn is_game_blacklisted(&self, name: &str) -> bool {
+        self.blacklisted_games.contains(name)
+    }
+
+    pub fn add_game_to_blacklist(&mut self, name: &str) {
+        self.blacklisted_games.insert(name.to_owned());
+    }
+
+    pub fn remove_game_from_blacklist(&mut self, name: &str) -> bool {
+        self.blacklisted_games.remove(name)
+    }
+
     pub fn any_saves_ignored(&self, name: &str, scan_kind: ScanKind) -> bool {
         match scan_kind {
             ScanKind::Backup => {
@@ -1768,7 +1784,8 @@ impl Config {
     }
 
     pub fn should_show_game(&self, name: &str, scan_kind: ScanKind, changed: bool, scanned: bool) -> bool {
-        (self.scan.show_deselected_games || self.is_game_enabled_for_operation(name, scan_kind))
+        !self.is_game_blacklisted(name)
+            && (self.scan.show_deselected_games || self.is_game_enabled_for_operation(name, scan_kind))
             && (self.scan.show_unchanged_games || changed || !scanned)
             && (self.scan.show_unscanned_games || scanned)
     }
@@ -2218,6 +2235,10 @@ mod tests {
                   - Wine Prefix 1
                   - Wine Prefix 2
                   - Wine Prefix 2
+            blacklistedGames:
+              - Blacklisted Game 1
+              - Blacklisted Game 2
+              - Blacklisted Game 2
             "#,
         )
         .unwrap();
@@ -2319,6 +2340,10 @@ mod tests {
                         expanded: false,
                     },
                 ],
+                blacklisted_games: btree_set! {
+                    s("Blacklisted Game 1"),
+                    s("Blacklisted Game 2"),
+                },
             },
             config,
         );
@@ -2444,6 +2469,9 @@ customGames:
     registry: []
     installDir: []
     winePrefix: []
+blacklistedGames:
+  - Blacklisted Game 1
+  - Blacklisted Game 2
 "#
             .trim(),
             serde_yaml::to_string(&Config {
@@ -2553,10 +2581,29 @@ customGames:
                         expanded: false,
                     },
                 ],
+                blacklisted_games: btree_set! {
+                    s("Blacklisted Game 2"),
+                    s("Blacklisted Game 1"),
+                },
             })
             .unwrap()
             .trim(),
         );
+    }
+
+    #[test]
+    fn can_manipulate_blacklist() {
+        let mut config = Config::default();
+
+        assert!(!config.is_game_blacklisted("game-1"));
+
+        config.add_game_to_blacklist("game-1");
+        assert!(config.is_game_blacklisted("game-1"));
+        assert!(!config.is_game_blacklisted("game-2"));
+
+        assert!(config.remove_game_from_blacklist("game-1"));
+        assert!(!config.is_game_blacklisted("game-1"));
+        assert!(!config.remove_game_from_blacklist("game-1"));
     }
 
     mod ignored_paths {

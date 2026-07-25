@@ -139,7 +139,9 @@ impl Ludusavi {
         let retention = self.config.backup.retention;
 
         let games_specified = !games.is_empty();
-        let games = evaluate_games(self.manifest.primary_titles(), games, &self.title_finder)?;
+        let mut default_titles = self.manifest.primary_titles();
+        default_titles.retain(|x| !self.config.is_game_blacklisted(x));
+        let games = evaluate_games(default_titles, games, &self.title_finder)?;
 
         let mut duplicate_detector = DuplicateDetector::default();
         let launchers = Launchers::scan(&roots, &self.manifest, &games, &self.title_finder, None);
@@ -328,7 +330,9 @@ impl Ludusavi {
         let backup_id = backup.as_ref().map(|x| BackupId::Named(x.clone()));
 
         let games_specified = !games.is_empty();
-        let games = evaluate_games(self.manifest.primary_titles(), games, &self.title_finder)?;
+        let mut default_titles = self.manifest.primary_titles();
+        default_titles.retain(|x| !self.config.is_game_blacklisted(x));
+        let games = evaluate_games(default_titles, games, &self.title_finder)?;
 
         let mut duplicate_detector = DuplicateDetector::default();
 

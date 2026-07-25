@@ -659,6 +659,9 @@ impl GameList {
 
         let mut log = Self::default();
         for game in games {
+            if config.is_game_blacklisted(game) {
+                continue;
+            }
             log.update_game(
                 ScanInfo {
                     game_name: game.clone(),

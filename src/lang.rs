@@ -393,6 +393,10 @@ impl Translator {
         translate("button-unlock")
     }
 
+    pub fn blacklist_button(&self) -> String {
+        translate("button-blacklist")
+    }
+
     pub fn handle_error(&self, error: &Error) -> String {
         match error {
             Error::ConfigInvalid { why } => self.config_is_invalid(why),
@@ -465,6 +469,18 @@ impl Translator {
         let prefix = translate("cli-unrecognized-games");
         let lines = games.iter().map(|x| format!("  - {x}")).join("\n");
         format!("{prefix}\n{lines}")
+    }
+
+    pub fn cli_blacklist_unrecognized_game(&self, game: &str) -> String {
+        let mut args = FluentArgs::new();
+        args.set(GAME, game);
+        translate_args("cli-blacklist-unrecognized-game", &args)
+    }
+
+    pub fn cli_blacklist_entry_not_found(&self, game: &str) -> String {
+        let mut args = FluentArgs::new();
+        args.set(GAME, game);
+        translate_args("cli-blacklist-entry-not-found", &args)
     }
 
     pub fn cli_unable_to_request_confirmation(&self) -> String {
@@ -1160,6 +1176,10 @@ impl Translator {
 
     pub fn ignored_items_label(&self) -> String {
         translate("field-backup-excluded-items")
+    }
+
+    pub fn blacklisted_games_label(&self) -> String {
+        translate("field-blacklisted-games")
     }
 
     pub fn redirects_label(&self) -> String {

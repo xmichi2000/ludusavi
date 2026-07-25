@@ -48,6 +48,13 @@ properties:
       toggledRegistry: {}
     allOf:
       - $ref: "#/definitions/BackupConfig"
+  blacklistedGames:
+    description: Games to completely hide from scans and the interface.
+    default: []
+    type: array
+    items:
+      type: string
+    uniqueItems: true
   cloud:
     default:
       path: ludusavi-backup

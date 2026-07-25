@@ -203,6 +203,16 @@ impl App {
         self.pending_save.insert(SaveKind::Config, Instant::now());
     }
 
+    fn sync_blacklisted_games(&mut self) {
+        self.config.blacklisted_games = self
+            .text_histories
+            .blacklisted_games
+            .iter()
+            .map(|x| x.current())
+            .filter(|x| !x.trim().is_empty())
+            .collect();
+    }
+
     fn save_cache(&mut self) {
         self.pending_save.insert(SaveKind::Cache, Instant::now());
     }
@@ -405,7 +415,11 @@ impl App {
                                 .cloned()
                                 .collect()
                         } else {
-                            manifest.processable_titles().cloned().collect()
+                            manifest
+                                .processable_titles()
+                                .filter(|x| !config.is_game_blacklisted(x))
+                                .cloned()
+                                .collect()
                         };
 
                         // HashSet -> Vec because randomized order looks nicer in the GUI.
@@ -828,6 +842,8 @@ impl App {
                 if let Some(games) = &games {
                     restorables.retain(|v| games.contains(v));
                     self.restore_screen.log.unscan_games(games);
+                } else {
+                    restorables.retain(|v| !self.config.is_game_blacklisted(v));
                 }
 
                 if restorables.is_empty() {
@@ -1820,6 +1836,24 @@ impl App {
                             self.config.backup.filter.ignored_registry.swap(index, offset);
                         }
                     },
+                    config::Event::BlacklistedGame(action) => {
+                        match action {
+                            EditAction::Add => {
+                                self.text_histories.blacklisted_games.push(Default::default());
+                            }
+                            EditAction::Change(index, value) => {
+                                self.text_histories.blacklisted_games[index].push(&value);
+                            }
+                            EditAction::Remove(index) => {
+                                self.text_histories.blacklisted_games.remove(index);
+                            }
+                            EditAction::Move(index, direction) => {
+                                let offset = direction.shift(index);
+                                self.text_histories.blacklisted_games.swap(index, offset);
+                            }
+                        }
+                        self.sync_blacklisted_games();
+                    }
                     config::Event::GameListEntryEnabled {
                         name,
                         enabled,
@@ -2549,6 +2583,10 @@ impl App {
                         &mut self.config.backup.filter.ignored_registry[i],
                         &mut self.text_histories.backup_filter_ignored_registry[i],
                     ),
+                    UndoSubject::BlacklistedGame(i) => {
+                        self.text_histories.blacklisted_games[i].apply(shortcut);
+                        self.sync_blacklisted_games();
+                    }
                     UndoSubject::RcloneExecutable => shortcut.apply_to_strict_path_field(
                         &mut self.config.apps.rclone.path,
                         &mut self.text_histories.rclone_executable,
@@ -2647,6 +2685,14 @@ impl App {
                     Task::none()
                 }
                 GameAction::MakeAlias => self.customize_game_as_alias(game),
+                GameAction::Blacklist => {
+                    if !self.config.is_game_blacklisted(&game) {
+                        self.config.add_game_to_blacklist(&game);
+                        self.text_histories.blacklisted_games.push(TextHistory::raw(&game));
+                        self.save_config();
+                    }
+                    Task::none()
+                }
             },
             Message::Scrolled { subject, position } => {
                 self.scroll_offsets.insert(subject, position);

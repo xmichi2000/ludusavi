@@ -13,6 +13,8 @@ cli-unable-to-request-confirmation = Unable to request confirmation.
     .winpty-workaround = If you are using a Bash emulator (like Git Bash), try running winpty.
 cli-backup-id-with-multiple-games = Cannot specify backup ID when restoring multiple games.
 cli-invalid-backup-id = Invalid backup ID.
+cli-blacklist-unrecognized-game = No info for this game, but blacklisting it anyway: {$game}
+cli-blacklist-entry-not-found = Not on the blacklist: {$game}
 
 badge-failed = FAILED
 badge-duplicates = DUPLICATES
@@ -56,6 +58,7 @@ button-sort = Sort
 button-download = Download
 button-upload = Upload
 button-ignore = Ignore
+button-blacklist = Add to blacklist
 
 no-roots-are-configured = Add some roots to back up even more data.
 
@@ -97,6 +100,8 @@ field-redirect-target =
     .placeholder = Target (new location)
 field-roots = Roots:
 field-backup-excluded-items = Backup exclusions:
+# Games on the blacklist are completely hidden from scans and the interface.
+field-blacklisted-games = Blacklisted games:
 field-redirects = Redirects:
 # This appears next to the number of full backups that you'd like to keep.
 # A full backup includes all save files for a game.

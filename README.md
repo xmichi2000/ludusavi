@@ -83,6 +83,7 @@ Detailed help documentation is available for several topics.
 * [Backup exclusions](/docs/help/backup-exclusions.md)
 * [Backup retention](/docs/help/backup-retention.md)
 * [Backup validation](/docs/help/backup-validation.md)
+* [Blacklist](/docs/help/blacklist.md)
 * [Cloud backup](/docs/help/cloud-backup.md)
 * [Custom games](/docs/help/custom-games.md)
 * [Duplicates](/docs/help/duplicates.md)

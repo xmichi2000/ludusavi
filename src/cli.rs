@@ -205,7 +205,9 @@ pub fn run(sub: Subcommand, no_manifest_update: bool, try_manifest_update: bool)
             let title_finder = TitleFinder::new(&config, &manifest, layout.restorable_game_set());
 
             let games_specified = !games.is_empty();
-            let games = match evaluate_games(manifest.primary_titles(), games, &title_finder) {
+            let mut default_titles = manifest.primary_titles();
+            default_titles.retain(|x| !config.is_game_blacklisted(x));
+            let games = match evaluate_games(default_titles, games, &title_finder) {
                 Ok(games) => games,
                 Err(games) => {
                     reporter.trip_unknown_games(games.clone());
@@ -506,7 +508,9 @@ pub fn run(sub: Subcommand, no_manifest_update: bool, try_manifest_update: bool)
             let title_finder = TitleFinder::new(&config, &manifest, layout.restorable_game_set());
 
             let games_specified = !games.is_empty();
-            let games = match evaluate_games(layout.restorable_game_set(), games, &title_finder) {
+            let mut default_titles = layout.restorable_game_set();
+            default_titles.retain(|x| !config.is_game_blacklisted(x));
+            let games = match evaluate_games(default_titles, games, &title_finder) {
                 Ok(games) => games,
                 Err(games) => {
                     reporter.trip_unknown_games(games.clone());
@@ -879,6 +883,45 @@ pub fn run(sub: Subcommand, no_manifest_update: bool, try_manifest_update: bool)
                     println!("{}", serde_yaml::to_string(&config).unwrap());
                 }
             }
+            ConfigSubcommand::Blacklist { sub: blacklist_sub } => match blacklist_sub {
+                parse::ConfigBlacklistSubcommand::Add { games } => {
+                    let games = parse_games(games);
+
+                    let manifest = load_manifest(&config, &mut cache, true, false).unwrap_or_default();
+                    let layout = BackupLayout::new(config.backup.path.clone());
+                    let title_finder = TitleFinder::new(&config, &manifest, layout.restorable_game_set());
+
+                    for game in games {
+                        match title_finder.find_one_by_name(&game) {
+                            Some(found) => {
+                                config.add_game_to_blacklist(&found);
+                            }
+                            None => {
+                                println!("{}", TRANSLATOR.cli_blacklist_unrecognized_game(&game));
+                                config.add_game_to_blacklist(&game);
+                            }
+                        }
+                    }
+
+                    config.save();
+                }
+                parse::ConfigBlacklistSubcommand::Remove { games } => {
+                    let games = parse_games(games);
+
+                    for game in games {
+                        if !config.remove_game_from_blacklist(&game) {
+                            println!("{}", TRANSLATOR.cli_blacklist_entry_not_found(&game));
+                        }
+                    }
+
+                    config.save();
+                }
+                parse::ConfigBlacklistSubcommand::List => {
+                    for game in &config.blacklisted_games {
+                        println!("{game}");
+                    }
+                }
+            },
         },
         Subcommand::Cloud { sub: cloud_sub } => match cloud_sub {
             parse::CloudSubcommand::Set { sub } => match sub {

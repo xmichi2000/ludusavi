@@ -717,6 +717,11 @@ pub fn other<'a>(
                 )
                 .push(
                     Column::new()
+                        .push(text(TRANSLATOR.blacklisted_games_label()))
+                        .push(editor::blacklisted_games(histories).padding(padding::top(10))),
+                )
+                .push(
+                    Column::new()
                         .push(text(TRANSLATOR.redirects_label()))
                         .push(editor::redirect(config, histories, modifiers).padding(padding::top(10))),
                 );

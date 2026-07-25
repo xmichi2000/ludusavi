@@ -1,6 +1,11 @@
 ## Unreleased
 
 * Added:
+  * You can now blacklist games to completely hide them from scans and the interface,
+    unlike disabled games, which are still scanned and shown.
+    Use the three-dot menu next to a game's title,
+    the "blacklisted games" section on the "other" screen,
+    or the CLI's `config blacklist` command.
   * Ludusavi can now translate native Windows paths into Wine prefixes and vice versa.
     During a scan, these will appear like any other redirected path.
     This is supported for Wine specifically, not any other native Linux paths.

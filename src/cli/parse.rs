@@ -664,6 +664,32 @@ pub enum ConfigSubcommand {
         #[clap(long)]
         default: bool,
     },
+    /// Manage the blacklist.
+    /// Blacklisted games are completely hidden from scans and the interface.
+    Blacklist {
+        #[clap(subcommand)]
+        sub: ConfigBlacklistSubcommand,
+    },
+}
+
+#[derive(clap::Subcommand, Clone, Debug, PartialEq, Eq)]
+pub enum ConfigBlacklistSubcommand {
+    /// Add games to the blacklist.
+    Add {
+        /// Which games to add.
+        /// Alternatively supports stdin (one value per line).
+        #[clap()]
+        games: Vec<String>,
+    },
+    /// Remove games from the blacklist.
+    Remove {
+        /// Which games to remove.
+        /// Alternatively supports stdin (one value per line).
+        #[clap()]
+        games: Vec<String>,
+    },
+    /// Print the blacklisted games, one per line.
+    List,
 }
 
 #[derive(clap::Subcommand, Clone, Debug, PartialEq, Eq)]

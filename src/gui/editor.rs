@@ -689,3 +689,26 @@ pub fn ignored_items<'a>(config: &Config, histories: &TextHistories, modifiers: 
         )
     })
 }
+
+pub fn blacklisted_games<'a>(histories: &TextHistories) -> Container<'a> {
+    Container::new(
+        Container::new(
+            Column::new().padding(5).spacing(5).push(
+                histories
+                    .blacklisted_games
+                    .iter()
+                    .enumerate()
+                    .fold(Column::new().spacing(4), |column, (ii, _)| {
+                        column.push(
+                            Row::new()
+                                .spacing(20)
+                                .push(histories.input(UndoSubject::BlacklistedGame(ii)))
+                                .push(button::remove(Message::config(config::Event::BlacklistedGame), ii)),
+                        )
+                    })
+                    .push(button::add(Message::config(config::Event::BlacklistedGame))),
+            ),
+        )
+        .class(style::Container::GameListEntry),
+    )
+}

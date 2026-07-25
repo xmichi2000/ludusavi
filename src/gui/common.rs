@@ -712,6 +712,7 @@ pub enum UndoSubject {
     CustomGameWinePrefix(usize, usize),
     BackupFilterIgnoredPath(usize),
     BackupFilterIgnoredRegistry(usize),
+    BlacklistedGame(usize),
     RcloneExecutable,
     RcloneArguments,
     CloudRemoteId,
@@ -741,6 +742,7 @@ impl UndoSubject {
             | UndoSubject::CustomGameWinePrefix(_, _)
             | UndoSubject::BackupFilterIgnoredPath(_)
             | UndoSubject::BackupFilterIgnoredRegistry(_)
+            | UndoSubject::BlacklistedGame(_)
             | UndoSubject::RcloneExecutable
             | UndoSubject::RcloneArguments
             | UndoSubject::CloudRemoteId
@@ -821,6 +823,7 @@ pub enum GameAction {
     Lock,
     Unlock,
     MakeAlias,
+    Blacklist,
 }
 
 impl GameAction {
@@ -852,6 +855,10 @@ impl GameAction {
         }
 
         options.push(Self::MakeAlias);
+
+        if !operating {
+            options.push(Self::Blacklist);
+        }
 
         if scan_kind.is_restore() && has_backups {
             options.push(Self::Comment);
@@ -886,6 +893,7 @@ impl GameAction {
             GameAction::Lock => Icon::Lock,
             GameAction::Unlock => Icon::LockOpen,
             GameAction::MakeAlias => Icon::Edit,
+            GameAction::Blacklist => Icon::VisibilityOff,
         }
     }
 }
@@ -914,6 +922,7 @@ impl ToString for GameAction {
             Self::Lock => TRANSLATOR.lock_button(),
             Self::Unlock => TRANSLATOR.unlock_button(),
             Self::MakeAlias => TRANSLATOR.alias_label(),
+            Self::Blacklist => TRANSLATOR.blacklist_button(),
         }
     }
 }
