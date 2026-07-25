@@ -594,8 +594,42 @@ pub fn other<'a>(
                                                 0..=255,
                                                 Message::config(|x| config::Event::DiffRetention(x as u8)),
                                             )
-                                        }),
+                                        })
+                                        .push(checkbox(
+                                            TRANSLATOR.time_based_retention(),
+                                            config.backup.retention.time_based.is_some(),
+                                            Message::config(config::Event::TimeBasedRetentionEnabled),
+                                        )),
                                 )
+                                .push_if(config.backup.retention.time_based.is_some(), || {
+                                    let time_based = config.backup.retention.time_based.unwrap_or_default();
+                                    Row::new()
+                                        .spacing(20)
+                                        .height(30)
+                                        .align_y(Alignment::Center)
+                                        .push(number_input(
+                                            time_based.keep_all_days as i32,
+                                            TRANSLATOR.retention_keep_all_days(),
+                                            0..=3650,
+                                            Message::config(|x| config::Event::TimeBasedRetentionKeepAllDays(x as u32)),
+                                        ))
+                                        .push(number_input(
+                                            time_based.keep_daily_days as i32,
+                                            TRANSLATOR.retention_keep_daily_days(),
+                                            0..=3650,
+                                            Message::config(|x| {
+                                                config::Event::TimeBasedRetentionKeepDailyDays(x as u32)
+                                            }),
+                                        ))
+                                        .push(number_input(
+                                            time_based.keep_weekly_weeks as i32,
+                                            TRANSLATOR.retention_keep_weekly_weeks(),
+                                            0..=520,
+                                            Message::config(|x| {
+                                                config::Event::TimeBasedRetentionKeepWeeklyWeeks(x as u32)
+                                            }),
+                                        ))
+                                })
                                 .push(
                                     Row::new()
                                         .spacing(20)

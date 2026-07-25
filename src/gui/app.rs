@@ -2002,6 +2002,25 @@ impl App {
                     config::Event::DiffRetention(value) => {
                         self.config.backup.retention.differential = value;
                     }
+                    config::Event::TimeBasedRetentionEnabled(enabled) => {
+                        self.config.backup.retention.time_based =
+                            enabled.then(|| self.config.backup.retention.time_based.unwrap_or_default());
+                    }
+                    config::Event::TimeBasedRetentionKeepAllDays(value) => {
+                        if let Some(time_based) = self.config.backup.retention.time_based.as_mut() {
+                            time_based.keep_all_days = value;
+                        }
+                    }
+                    config::Event::TimeBasedRetentionKeepDailyDays(value) => {
+                        if let Some(time_based) = self.config.backup.retention.time_based.as_mut() {
+                            time_based.keep_daily_days = value;
+                        }
+                    }
+                    config::Event::TimeBasedRetentionKeepWeeklyWeeks(value) => {
+                        if let Some(time_based) = self.config.backup.retention.time_based.as_mut() {
+                            time_based.keep_weekly_weeks = value;
+                        }
+                    }
                     config::Event::BackupFormat(format) => {
                         self.config.backup.format.chosen = format;
                     }

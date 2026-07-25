@@ -35,6 +35,12 @@
     so that nothing slips through the cracks.
     You can register a found folder as a custom game
     with the `--adopt` and `--name` options.
+  * Backup retention can now be time-based:
+    instead of keeping a fixed number of full backups,
+    Ludusavi can keep every backup generation from the last few days,
+    then one per day, then one per week, and delete the rest.
+    Enable the "time-based" option next to the retention limits on the "other" screen
+    (`backup.retention.timeBased` in the config file).
   * Ludusavi can now translate native Windows paths into Wine prefixes and vice versa.
     During a scan, these will appear like any other redirected path.
     This is supported for Wine specifically, not any other native Linux paths.

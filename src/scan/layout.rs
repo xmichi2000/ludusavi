@@ -10,7 +10,8 @@ use crate::{
     prelude::{AnyError, Error, INVALID_FILE_CHARS},
     resource::{
         config::{
-            BackupFormat, BackupFormats, RedirectConfig, Retention, ToggledPaths, ToggledRegistry, ZipCompression,
+            BackupFormat, BackupFormats, RedirectConfig, Retention, TimeBasedRetention, ToggledPaths, ToggledRegistry,
+            ZipCompression,
         },
         manifest::Os,
     },
@@ -60,6 +61,54 @@ pub fn escape_folder_name(name: &str) -> String {
     }
 
     escaped.replace(INVALID_FILE_CHARS, SAFE)
+}
+
+/// Under time-based retention, determine which full backup generations to delete.
+///
+/// Each entry in `generations` pairs some identifier (such as an index)
+/// with the time of the corresponding full backup.
+/// The newest generation is never deleted.
+/// Deleting a full backup implies deleting its differential backups as well.
+fn plan_time_based_retention<T: Copy>(
+    generations: &[(T, chrono::DateTime<chrono::Utc>)],
+    rules: &TimeBasedRetention,
+    now: &chrono::DateTime<chrono::Utc>,
+) -> Vec<T> {
+    let mut sorted = generations.to_vec();
+    sorted.sort_by_key(|(_, when)| *when);
+
+    let keep_all_after = *now - chrono::Duration::days(rules.keep_all_days as i64);
+    let keep_daily_after = *now - chrono::Duration::days(rules.keep_daily_days as i64);
+    let keep_weekly_after = *now - chrono::Duration::weeks(rules.keep_weekly_weeks as i64);
+
+    let mut deletions = vec![];
+    let mut kept_days = BTreeSet::new();
+    let mut kept_weeks = BTreeSet::new();
+
+    for (position, (id, when)) in sorted.iter().enumerate().rev() {
+        let newest = position == sorted.len() - 1;
+        let day = when.date_naive();
+        let week = (when.iso_week().year(), when.iso_week().week());
+
+        let keep = if newest || *when >= keep_all_after {
+            true
+        } else if *when >= keep_daily_after {
+            !kept_days.contains(&day)
+        } else if *when >= keep_weekly_after {
+            !kept_weeks.contains(&week)
+        } else {
+            false
+        };
+
+        if keep {
+            kept_days.insert(day);
+            kept_weeks.insert(week);
+        } else {
+            deletions.push(*id);
+        }
+    }
+
+    deletions
 }
 
 pub struct LatestBackup {
@@ -1413,7 +1462,7 @@ impl GameLayout {
         }
     }
 
-    fn forget_excess_backups(&mut self, retention: Retention) {
+    fn forget_excess_backups(&mut self, retention: Retention, now: &chrono::DateTime<chrono::Utc>) {
         // We need to track by index rather than by ID.
         // If we're merging into a single existing backup (like the special ID `.`),
         // then we may have two of them before pruning the older one.
@@ -1425,13 +1474,32 @@ impl GameLayout {
             .iter()
             .filter(|full| !full.locked && full.children.iter().all(|diff| !diff.locked))
             .count();
-        let mut excess_fulls = unlocked_fulls.saturating_sub(retention.full as usize);
+
+        // Time-based retention replaces the `full` count when it is configured.
+        let stale_fulls: Vec<usize> = match &retention.time_based {
+            Some(rules) => {
+                let generations: Vec<_> = self
+                    .mapping
+                    .backups
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, full)| !full.locked && full.children.iter().all(|diff| !diff.locked))
+                    .map(|(i, full)| (i, full.when))
+                    .collect();
+                plan_time_based_retention(&generations, rules, now)
+            }
+            None => vec![],
+        };
+        let mut excess_fulls = match retention.time_based {
+            Some(_) => 0,
+            None => unlocked_fulls.saturating_sub(retention.full as usize),
+        };
 
         for (i, full) in self.mapping.backups.iter_mut().enumerate() {
             let locked = full.locked || full.children.iter().any(|diff| diff.locked);
-            if !locked && excess_fulls > 0 {
+            if !locked && (excess_fulls > 0 || stale_fulls.contains(&i)) {
                 excess.push((i, None));
-                excess_fulls -= 1;
+                excess_fulls = excess_fulls.saturating_sub(1);
             }
 
             let unlocked_diffs = full.children.iter().filter(|diff| !diff.locked).count();
@@ -1622,7 +1690,7 @@ impl GameLayout {
                 backup.prune_failures(&backup_info);
                 if backup.needed() {
                     self.insert_backup(backup.clone());
-                    self.forget_excess_backups(retention);
+                    self.forget_excess_backups(retention, now);
                     self.save();
                 }
                 self.prune_irrelevant_parents();
@@ -2390,6 +2458,94 @@ mod tests {
         }
     }
 
+    mod time_based_retention {
+        use pretty_assertions::assert_eq;
+
+        use super::*;
+
+        fn rules() -> TimeBasedRetention {
+            TimeBasedRetention {
+                keep_all_days: 7,
+                keep_daily_days: 30,
+                keep_weekly_weeks: 52,
+            }
+        }
+
+        fn now() -> chrono::DateTime<chrono::Utc> {
+            chrono::NaiveDate::from_ymd_opt(2024, 6, 30)
+                .unwrap()
+                .and_hms_opt(12, 0, 0)
+                .unwrap()
+                .and_local_timezone(chrono::Utc)
+                .unwrap()
+        }
+
+        /// A generation from `days` days ago, at `hour` o'clock.
+        fn ago(id: u32, days: i64, hour: u32) -> (u32, chrono::DateTime<chrono::Utc>) {
+            let when = (now() - chrono::Duration::days(days))
+                .with_hour(hour)
+                .unwrap()
+                .with_minute(0)
+                .unwrap()
+                .with_second(0)
+                .unwrap();
+            (id, when)
+        }
+
+        fn plan(generations: &[(u32, chrono::DateTime<chrono::Utc>)]) -> Vec<u32> {
+            let mut deletions = plan_time_based_retention(generations, &rules(), &now());
+            deletions.sort();
+            deletions
+        }
+
+        #[test]
+        fn keeps_everything_within_the_first_window() {
+            assert_eq!(
+                Vec::<u32>::new(),
+                plan(&[ago(1, 6, 1), ago(2, 6, 12), ago(3, 3, 8), ago(4, 0, 11)])
+            );
+        }
+
+        #[test]
+        fn keeps_only_the_newest_per_day_in_the_daily_window() {
+            // Three on the same day, 20 days ago: only the newest survives.
+            assert_eq!(
+                vec![1, 2],
+                plan(&[ago(1, 20, 1), ago(2, 20, 9), ago(3, 20, 17), ago(4, 0, 11)])
+            );
+        }
+
+        #[test]
+        fn keeps_only_the_newest_per_week_in_the_weekly_window() {
+            // Two in the same ISO week, ~100 days ago: only the newest survives.
+            assert_eq!(vec![1], plan(&[ago(1, 103, 5), ago(2, 100, 5), ago(3, 0, 11)]));
+        }
+
+        #[test]
+        fn deletes_beyond_the_weekly_window() {
+            assert_eq!(vec![1], plan(&[ago(1, 500, 5), ago(2, 0, 11)]));
+        }
+
+        #[test]
+        fn always_keeps_the_newest_generation() {
+            // Even though it is far beyond every window.
+            assert_eq!(Vec::<u32>::new(), plan(&[ago(1, 900, 5)]));
+        }
+
+        #[test]
+        fn handles_no_generations() {
+            assert_eq!(Vec::<u32>::new(), plan(&[]));
+        }
+
+        #[test]
+        fn ignores_the_order_of_the_input() {
+            assert_eq!(
+                vec![1, 2],
+                plan(&[ago(4, 0, 11), ago(2, 20, 9), ago(1, 20, 1), ago(3, 20, 17)])
+            );
+        }
+    }
+
     mod backup_layout {
         use pretty_assertions::assert_eq;
 
@@ -3064,7 +3220,7 @@ mod tests {
                 ..Default::default()
             };
 
-            layout.forget_excess_backups(Retention::new(1, 1));
+            layout.forget_excess_backups(Retention::new(1, 1), &now());
             assert_eq!(
                 VecDeque::from_iter(vec![FullBackup {
                     name: "2".to_string(),
@@ -3099,7 +3255,7 @@ mod tests {
                 ..Default::default()
             };
 
-            layout.forget_excess_backups(Retention::new(1, 0));
+            layout.forget_excess_backups(Retention::new(1, 0), &now());
             assert_eq!(
                 VecDeque::from_iter(vec![FullBackup {
                     name: SOLO.to_string(),
@@ -3163,7 +3319,7 @@ mod tests {
                 ..Default::default()
             };
 
-            layout.forget_excess_backups(Retention::new(1, 1));
+            layout.forget_excess_backups(Retention::new(1, 1), &now());
             assert_eq!(
                 VecDeque::from_iter(vec![
                     FullBackup {

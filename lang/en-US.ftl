@@ -128,6 +128,15 @@ field-retention-full = Full:
 # This appears next to the number of differential backups that you'd like to keep.
 # A differential backup includes only the files that have changed since the last full backup.
 field-retention-differential = Differential:
+# This appears next to a checkbox for deleting old backups based on their age
+# instead of based on the number of full backups to keep.
+field-retention-time-based = Time-based:
+# This appears next to the number of days for which every backup is kept.
+field-retention-keep-all-days = Keep all (days):
+# This appears next to the number of days for which one backup per day is kept.
+field-retention-keep-daily-days = Daily (days):
+# This appears next to the number of weeks for which one backup per week is kept.
+field-retention-keep-weekly-weeks = Weekly (weeks):
 field-backup-format = Format:
 field-backup-compression = Compression:
 # The compression level determines how much compresison we perform.

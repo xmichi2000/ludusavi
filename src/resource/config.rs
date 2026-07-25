@@ -86,6 +86,10 @@ pub enum Event {
     SortReversed(bool),
     FullRetention(u8),
     DiffRetention(u8),
+    TimeBasedRetentionEnabled(bool),
+    TimeBasedRetentionKeepAllDays(u32),
+    TimeBasedRetentionKeepDailyDays(u32),
+    TimeBasedRetentionKeepWeeklyWeeks(u32),
     BackupFormat(BackupFormat),
     BackupCompression(ZipCompression),
     CompressionLevel(i32),
@@ -868,6 +872,10 @@ pub struct Retention {
     pub full: u8,
     /// Differential backups to keep. Range: 0-255.
     pub differential: u8,
+    /// While set, old backup generations (a full backup plus its differential backups)
+    /// are deleted based on their age rather than the `full` count.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub time_based: Option<TimeBasedRetention>,
     #[serde(skip)]
     pub force_new_full: bool,
 }
@@ -903,7 +911,42 @@ impl Default for Retention {
         Self {
             full: 1,
             differential: 0,
+            time_based: None,
             force_new_full: false,
+        }
+    }
+}
+
+/// Time-based retention for backup generations.
+///
+/// While set, old backup generations (a full backup plus its differential backups)
+/// are pruned based on their age instead of the `full` count:
+/// Ludusavi keeps every generation from the last `keepAllDays` days,
+/// then only the newest generation per calendar day for `keepDailyDays` days,
+/// then only the newest generation per ISO week for `keepWeeklyWeeks` weeks,
+/// and deletes anything older.
+/// The newest generation is never deleted.
+/// The `full` and `differential` counts still control
+/// how often a new full backup is started.
+#[derive(Clone, Debug, Copy, Eq, PartialEq, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
+#[serde(default, rename_all = "camelCase")]
+pub struct TimeBasedRetention {
+    /// Keep every backup generation made within this many days.
+    pub keep_all_days: u32,
+    /// After that, keep only the newest backup generation per calendar day
+    /// for backups made within this many days.
+    pub keep_daily_days: u32,
+    /// After that, keep only the newest backup generation per ISO week
+    /// for backups made within this many weeks.
+    pub keep_weekly_weeks: u32,
+}
+
+impl Default for TimeBasedRetention {
+    fn default() -> Self {
+        Self {
+            keep_all_days: 7,
+            keep_daily_days: 30,
+            keep_weekly_weeks: 52,
         }
     }
 }
@@ -2210,6 +2253,13 @@ mod tests {
                 - Backup Game 2
               filter:
                 excludeStoreScreenshots: true
+              retention:
+                full: 2
+                differential: 1
+                timeBased:
+                  keepAllDays: 3
+                  keepDailyDays: 14
+                  keepWeeklyWeeks: 8
               onlyConstructive: true
             restore:
               path: ~/restore
@@ -2292,7 +2342,16 @@ mod tests {
                     toggled_paths: Default::default(),
                     toggled_registry: Default::default(),
                     sort: Default::default(),
-                    retention: Retention::default(),
+                    retention: Retention {
+                        full: 2,
+                        differential: 1,
+                        time_based: Some(TimeBasedRetention {
+                            keep_all_days: 3,
+                            keep_daily_days: 14,
+                            keep_weekly_weeks: 8,
+                        }),
+                        force_new_full: false,
+                    },
                     format: Default::default(),
                     only_constructive: true,
                 },
@@ -2613,6 +2672,53 @@ blacklistedGames:
             })
             .unwrap()
             .trim(),
+        );
+    }
+
+    #[test]
+    fn can_round_trip_time_based_retention() {
+        let retention = Retention {
+            full: 2,
+            differential: 3,
+            time_based: Some(TimeBasedRetention {
+                keep_all_days: 1,
+                keep_daily_days: 10,
+                keep_weekly_weeks: 5,
+            }),
+            force_new_full: false,
+        };
+
+        let serialized = serde_yaml::to_string(&retention).unwrap();
+        assert_eq!(
+            r#"
+---
+full: 2
+differential: 3
+timeBased:
+  keepAllDays: 1
+  keepDailyDays: 10
+  keepWeeklyWeeks: 5
+"#
+            .trim(),
+            serialized.trim(),
+        );
+        assert_eq!(retention, serde_yaml::from_str(&serialized).unwrap());
+    }
+
+    #[test]
+    fn can_parse_time_based_retention_with_defaults() {
+        assert_eq!(
+            Retention {
+                full: 1,
+                differential: 0,
+                time_based: Some(TimeBasedRetention {
+                    keep_all_days: 7,
+                    keep_daily_days: 30,
+                    keep_weekly_weeks: 52,
+                }),
+                force_new_full: false,
+            },
+            serde_yaml::from_str("timeBased: {}").unwrap(),
         );
     }
 

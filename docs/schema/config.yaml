@@ -605,6 +605,33 @@ definitions:
         type: integer
         format: uint8
         minimum: 0.0
+      timeBased:
+        description: "While set, old backup generations (a full backup plus its differential backups) are deleted based on their age rather than the `full` count."
+        anyOf:
+          - $ref: "#/definitions/TimeBasedRetention"
+          - type: "null"
+  TimeBasedRetention:
+    description: "Time-based retention for backup generations. While set, old backup generations (a full backup plus its differential backups) are pruned based on their age instead of the `full` count: Ludusavi keeps every generation from the last `keepAllDays` days, then only the newest generation per calendar day for `keepDailyDays` days, then only the newest generation per ISO week for `keepWeeklyWeeks` weeks, and deletes anything older. The newest generation is never deleted. The `full` and `differential` counts still control how often a new full backup is started."
+    type: object
+    properties:
+      keepAllDays:
+        description: Keep every backup generation made within this many days.
+        default: 7
+        type: integer
+        format: uint32
+        minimum: 0.0
+      keepDailyDays:
+        description: "After that, keep only the newest backup generation per calendar day for backups made within this many days."
+        default: 30
+        type: integer
+        format: uint32
+        minimum: 0.0
+      keepWeeklyWeeks:
+        description: "After that, keep only the newest backup generation per ISO week for backups made within this many weeks."
+        default: 52
+        type: integer
+        format: uint32
+        minimum: 0.0
   Root:
     oneOf:
       - type: object

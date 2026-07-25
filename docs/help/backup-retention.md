@@ -25,3 +25,28 @@ then Ludusavi will keep the full backup and just delete the oldest differential 
 
 On the restore screen, you can use the three-dot menu next to a game to lock any of its backups.
 Locked backups do not count toward the retention limits and are retained indefinitely.
+
+## Time-based retention
+If you enable the "time-based" option next to the retention limits,
+then Ludusavi deletes old backup generations
+(a full backup along with its differential backups)
+based on their age instead of the full retention count:
+
+* Every generation from the last `keep all` days is kept.
+* Before that, only the newest generation per calendar day is kept,
+  for `daily` days.
+* Before that, only the newest generation per ISO week is kept,
+  for `weekly` weeks.
+* Anything older is deleted.
+
+The newest generation is never deleted, even if it is older than every window.
+Locked backups are still exempt.
+
+The full and differential counts continue to control
+how often Ludusavi starts a new full backup,
+so a small differential count means more generations
+(and therefore more restore points) within each window.
+
+This is useful if you back up frequently, such as after each play session,
+since it keeps recent history in detail
+while thinning out older backups automatically.

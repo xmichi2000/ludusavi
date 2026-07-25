@@ -1260,6 +1260,22 @@ impl Translator {
         translate("field-retention-differential")
     }
 
+    pub fn time_based_retention(&self) -> String {
+        translate("field-retention-time-based")
+    }
+
+    pub fn retention_keep_all_days(&self) -> String {
+        translate("field-retention-keep-all-days")
+    }
+
+    pub fn retention_keep_daily_days(&self) -> String {
+        translate("field-retention-keep-daily-days")
+    }
+
+    pub fn retention_keep_weekly_weeks(&self) -> String {
+        translate("field-retention-keep-weekly-weeks")
+    }
+
     pub fn backup_format_field(&self) -> String {
         translate("field-backup-format")
     }
