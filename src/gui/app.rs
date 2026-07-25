@@ -1,4 +1,4 @@
-use std::{
+﻿use std::{
     collections::{HashMap, HashSet},
     time::{Duration, Instant},
 };
@@ -3042,6 +3042,15 @@ impl App {
                     },
                     Message::FoundUnknownSaves,
                 )
+            }
+            Message::SetAutostart(enabled) => {
+                if let Err(e) = ludusavi::autostart::set_enabled(enabled) {
+                    log::error!("Unable to change the autostart entry: {e}");
+                    return self.show_modal(Modal::Errors {
+                        errors: vec![Error::AutostartFailed { why: e }],
+                    });
+                }
+                Task::none()
             }
             Message::RefreshDashboard => {
                 if self.dashboard_screen.refreshing {

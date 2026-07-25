@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+﻿use std::collections::HashSet;
 
 use iced::{Alignment, Length, keyboard, padding};
 
@@ -622,6 +622,13 @@ pub fn other<'a>(
                                             config.watch.notify,
                                             Message::config(config::Event::WatchNotify),
                                         ))
+                                        .push_if(ludusavi::autostart::supported(), || {
+                                            checkbox(
+                                                TRANSLATOR.watch_at_login(),
+                                                ludusavi::autostart::enabled(),
+                                                Message::SetAutostart,
+                                            )
+                                        })
                                         .push(
                                             Row::new()
                                                 .spacing(20)

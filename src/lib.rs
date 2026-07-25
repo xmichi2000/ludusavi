@@ -6,6 +6,7 @@
 //! so please understand that the API will be unstable.
 
 pub mod api;
+pub mod autostart;
 pub mod cloud;
 pub mod lang;
 pub mod metadata;

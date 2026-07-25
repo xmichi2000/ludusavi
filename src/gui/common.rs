@@ -211,6 +211,7 @@ pub enum Message {
     },
     FindUnknownSaves,
     FoundUnknownSaves(Vec<UnknownSaveCandidate>),
+    SetAutostart(bool),
     RefreshDashboard,
     DashboardRefreshed(Box<crate::gui::screen::DashboardStatus>),
     AdoptUnknownSave {

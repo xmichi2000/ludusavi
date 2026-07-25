@@ -41,6 +41,9 @@
     Each automatic backup is commented with the date and how long you played.
     On Windows, `ludusavi watch --background` runs without a console window,
     which is useful for starting it when you log in.
+  * On Windows, the "watch for games when I log in" option
+    makes Ludusavi start watching for games automatically when you log in,
+    without showing a window.
   * Games that are currently running are now skipped during backups,
     since their saves may be incomplete.
     You can change this with the "skip games that are currently running" option

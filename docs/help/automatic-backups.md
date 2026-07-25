@@ -50,11 +50,14 @@ ludusavi watch
 Use `ludusavi watch --once` to just report which games are running right now.
 
 ## Starting automatically with Windows
-Use the `--background` option so that no console window remains visible:
+Enable the "watch for games when I log in" option on the "other" screen.
+Ludusavi then registers itself among the programs that Windows starts at login,
+running `ludusavi watch --background`,
+which watches for games without showing a window.
+Turning the option off removes that entry again.
+
+You can also run it yourself at any time:
 
 ```
 ludusavi watch --background
 ```
-
-To run it when you log in, press `win`+`R`, enter `shell:startup`,
-and create a shortcut in that folder pointing to Ludusavi with the `watch --background` arguments.

@@ -311,3 +311,5 @@ field-retention-time-based = Zeitbasiert:
 field-retention-keep-all-days = Alle behalten (Tage):
 field-retention-keep-daily-days = Täglich (Tage):
 field-retention-keep-weekly-weeks = Wöchentlich (Wochen):
+check-watch-at-login = Beim Anmelden nach Spielen suchen
+autostart-failed = Der Autostart-Eintrag konnte nicht geändert werden: { $message }

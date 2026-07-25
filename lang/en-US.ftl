@@ -150,6 +150,8 @@ notify-unknown-saves-found =
         [one] Found 1 unknown save folder
        *[other] Found { $total } unknown save folders
     }
+check-watch-at-login = Watch for games when I log in
+autostart-failed = Unable to change whether Ludusavi runs at login: { $message }
 check-watch-enabled = Back up automatically when a game closes
 check-watch-notify = Show a notification after each automatic backup
 check-watch-skip-running-games = Skip games that are currently running

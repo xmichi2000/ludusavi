@@ -404,6 +404,7 @@ impl Translator {
     pub fn handle_error(&self, error: &Error) -> String {
         match error {
             Error::ConfigInvalid { why } => self.config_is_invalid(why),
+            Error::AutostartFailed { why } => self.autostart_failed(why),
             Error::ManifestInvalid { why, identifier } => self.manifest_is_invalid(why, identifier.as_deref()),
             Error::ManifestCannotBeUpdated { identifier } => self.manifest_cannot_be_updated(identifier.as_deref()),
             Error::CliUnrecognizedGames { games } => self.cli_unrecognized_games(games),
@@ -573,6 +574,16 @@ impl Translator {
         let mut args = FluentArgs::new();
         args.set(TOTAL, total);
         translate_args("notify-unknown-saves-found", &args)
+    }
+
+    pub fn watch_at_login(&self) -> String {
+        translate("check-watch-at-login")
+    }
+
+    pub fn autostart_failed(&self, why: &str) -> String {
+        let mut args = FluentArgs::new();
+        args.set(MESSAGE, why);
+        translate_args("autostart-failed", &args)
     }
 
     pub fn watch_enabled(&self) -> String {
