@@ -481,6 +481,11 @@ pub fn other<'a>(
                                     Message::config(config::Event::InstallDirSaves),
                                 ))
                                 .push(checkbox(
+                                    TRANSLATOR.find_unknown_saves_on_startup(),
+                                    config.scan.find_unknown_saves_on_startup,
+                                    Message::config(config::Event::FindUnknownSavesOnStartup),
+                                ))
+                                .push(checkbox(
                                     TRANSLATOR.watch_enabled(),
                                     config.watch.enabled,
                                     Message::config(config::Event::WatchEnabled),

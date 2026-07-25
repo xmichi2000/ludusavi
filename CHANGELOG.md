@@ -45,6 +45,12 @@
     since their saves may be incomplete.
     You can change this with the "skip games that are currently running" option
     (`watch.skipRunningGames` in the config file).
+  * Ludusavi now looks for unknown save folders when it starts
+    and notifies you if it finds any,
+    so that new saves don't go unnoticed.
+    You can turn this off with the "look for unknown save folders on startup" option
+    on the "other" screen (`scan.findUnknownSavesOnStartup` in the config file).
+    Dismissed findings are now remembered, so they aren't reported again.
   * When choosing which backup to restore,
     the list now shows each backup's comment along with its date,
     so you can tell your restore points apart at a glance.

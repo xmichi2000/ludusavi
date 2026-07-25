@@ -130,6 +130,14 @@ field-retention-full = Full:
 field-retention-differential = Differential:
 # This appears next to a checkbox for deleting old backups based on their age
 # instead of based on the number of full backups to keep.
+check-find-unknown-saves-on-startup = Look for unknown save folders on startup
+# This appears as a notification when Ludusavi finds save folders
+# that don't match any known game.
+notify-unknown-saves-found =
+    { $total ->
+        [one] Found 1 unknown save folder
+       *[other] Found { $total } unknown save folders
+    }
 check-watch-enabled = Back up automatically when a game closes
 check-watch-notify = Show a notification after each automatic backup
 check-watch-skip-running-games = Skip games that are currently running

@@ -2002,6 +2002,9 @@ impl App {
                     config::Event::DiffRetention(value) => {
                         self.config.backup.retention.differential = value;
                     }
+                    config::Event::FindUnknownSavesOnStartup(value) => {
+                        self.config.scan.find_unknown_saves_on_startup = value;
+                    }
                     config::Event::WatchEnabled(value) => {
                         self.config.watch.enabled = value;
                     }
@@ -2186,6 +2189,10 @@ impl App {
                 let mut tasks = vec![self.close_specific_modal(modal::Kind::UpdatingManifest)];
                 if !errors.is_empty() {
                     tasks.push(self.show_modal(Modal::Errors { errors }));
+                }
+                // We wait for the manifest, since we need it to tell known games from unknown ones.
+                if self.config.scan.find_unknown_saves_on_startup && self.custom_games_screen.unknown_saves.is_none() {
+                    tasks.push(Task::done(Message::FindUnknownSaves));
                 }
 
                 Task::batch(tasks)
@@ -3020,6 +3027,11 @@ impl App {
             }
             Message::FoundUnknownSaves(candidates) => {
                 self.custom_games_screen.scanning_unknown_saves = false;
+                // When we looked on our own, say so, since the user isn't watching that screen.
+                if self.custom_games_screen.unknown_saves.is_none() && !candidates.is_empty() {
+                    self.timed_notification =
+                        Some(Notification::new(TRANSLATOR.notify_unknown_saves_found(candidates.len())).expires(5));
+                }
                 self.custom_games_screen.unknown_saves = Some(candidates);
                 Task::none()
             }
@@ -3065,7 +3077,10 @@ impl App {
                 if let Some(candidates) = &mut self.custom_games_screen.unknown_saves
                     && index < candidates.len()
                 {
-                    candidates.remove(index);
+                    let candidate = candidates.remove(index);
+                    // Remember the choice so that we don't report it again.
+                    self.config.dismiss_unknown_save(&candidate.path);
+                    self.save_config();
                 }
                 Task::none()
             }

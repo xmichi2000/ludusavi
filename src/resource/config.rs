@@ -107,6 +107,7 @@ pub enum Event {
     CloudPath(String),
     SortCustomGames,
     OnlyConstructiveBackups(bool),
+    FindUnknownSavesOnStartup(bool),
     WatchEnabled(bool),
     WatchNotify(bool),
     WatchSkipRunningGames(bool),
@@ -1214,6 +1215,11 @@ pub struct Scan {
     pub emulator_save_templates: Vec<String>,
     /// Also check common save folders inside each game's install directory (saves, save, savegames, saved).
     pub install_dir_saves: bool,
+    /// Look for unknown save folders when the GUI starts.
+    pub find_unknown_saves_on_startup: bool,
+    /// Folders that you've dismissed when looking for unknown saves.
+    /// These are not reported again.
+    pub dismissed_unknown_saves: BTreeSet<String>,
 }
 
 impl Default for Scan {
@@ -1226,6 +1232,8 @@ impl Default for Scan {
             emulator_saves: true,
             emulator_save_templates: vec![],
             install_dir_saves: true,
+            find_unknown_saves_on_startup: true,
+            dismissed_unknown_saves: Default::default(),
         }
     }
 }
@@ -1754,6 +1762,14 @@ impl Config {
 
     pub fn disable_game_for_restore(&mut self, name: &str) {
         self.restore.ignored_games.insert(name.to_owned());
+    }
+
+    pub fn is_unknown_save_dismissed(&self, path: &StrictPath) -> bool {
+        self.scan.dismissed_unknown_saves.contains(&path.render())
+    }
+
+    pub fn dismiss_unknown_save(&mut self, path: &StrictPath) {
+        self.scan.dismissed_unknown_saves.insert(path.render());
     }
 
     pub fn is_game_blacklisted(&self, name: &str) -> bool {
@@ -2312,6 +2328,7 @@ mod tests {
               showUnchangedGames: false
               showUnscannedGames: false
               emulatorSaves: false
+              findUnknownSavesOnStartup: false
             cloud:
               remote:
                 GoogleDrive:
@@ -2414,6 +2431,8 @@ mod tests {
                     emulator_saves: false,
                     emulator_save_templates: vec![],
                     install_dir_saves: true,
+                    find_unknown_saves_on_startup: false,
+                    dismissed_unknown_saves: Default::default(),
                 },
                 watch: Default::default(),
                 cloud: Cloud {
@@ -2549,6 +2568,8 @@ scan:
   emulatorSaves: false
   emulatorSaveTemplates: []
   installDirSaves: false
+  findUnknownSavesOnStartup: false
+  dismissedUnknownSaves: []
 watch:
   enabled: false
   notify: true
@@ -2657,6 +2678,8 @@ blacklistedGames:
                     emulator_saves: false,
                     emulator_save_templates: vec![],
                     install_dir_saves: false,
+                    find_unknown_saves_on_startup: false,
+                    dismissed_unknown_saves: Default::default(),
                 },
                 watch: Default::default(),
                 cloud: Cloud {
@@ -2769,6 +2792,24 @@ timeBased:
             },
             serde_yaml::from_str("timeBased: {}").unwrap(),
         );
+    }
+
+    #[test]
+    fn can_dismiss_unknown_saves() {
+        let mut config = Config::default();
+        let path = StrictPath::new("C:/games/some-folder");
+        let other = StrictPath::new("C:/games/other-folder");
+
+        assert!(!config.is_unknown_save_dismissed(&path));
+
+        config.dismiss_unknown_save(&path);
+        assert!(config.is_unknown_save_dismissed(&path));
+        assert!(!config.is_unknown_save_dismissed(&other));
+
+        // The choice survives a round trip through the config file.
+        let serialized = serde_yaml::to_string(&config).unwrap();
+        let restored: Config = serde_yaml::from_str(&serialized).unwrap();
+        assert!(restored.is_unknown_save_dismissed(&path));
     }
 
     #[test]

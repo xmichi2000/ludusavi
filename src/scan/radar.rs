@@ -201,6 +201,7 @@ pub fn find_unknown_saves(config: &Config, title_finder: &TitleFinder) -> Vec<Un
                 || is_noise(&name)
                 || emulator_folders.iter().any(|x| x.eq_ignore_ascii_case(&name))
                 || config.is_game_blacklisted(&name)
+                || config.is_unknown_save_dismissed(&child)
             {
                 continue;
             }

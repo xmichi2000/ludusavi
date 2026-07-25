@@ -1,9 +1,22 @@
 # Unknown saves
-The CLI's `find-unknown` command helps you discover save-like folders
-that don't belong to any known game,
+Ludusavi can look for save-like folders that don't belong to any known game,
 so that nothing slips through the cracks
 (for example, games without a manifest entry
 or saves from unknown Steam emulators).
+
+In the GUI, use the "find unknown saves" button on the custom games screen.
+Each finding can be adopted as a custom game with one click,
+or dismissed with the X button.
+Dismissed folders are remembered (`scan.dismissedUnknownSaves` in the config file),
+so they won't be reported again.
+
+By default, Ludusavi also looks for unknown saves when it starts,
+and notifies you if it finds any.
+You can turn this off with the "look for unknown save folders on startup" option
+on the "other" screen (`scan.findUnknownSavesOnStartup` in the config file).
+
+## Command line
+The `find-unknown` command does the same thing without the GUI:
 
 ```
 ludusavi find-unknown

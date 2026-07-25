@@ -517,6 +517,16 @@ impl Translator {
         translate_args("cli-find-unknown-adopted", &args)
     }
 
+    pub fn find_unknown_saves_on_startup(&self) -> String {
+        translate("check-find-unknown-saves-on-startup")
+    }
+
+    pub fn notify_unknown_saves_found(&self, total: usize) -> String {
+        let mut args = FluentArgs::new();
+        args.set(TOTAL, total);
+        translate_args("notify-unknown-saves-found", &args)
+    }
+
     pub fn watch_enabled(&self) -> String {
         translate("check-watch-enabled")
     }

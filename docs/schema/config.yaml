@@ -111,8 +111,10 @@ properties:
       - $ref: "#/definitions/Runtime"
   scan:
     default:
+      dismissedUnknownSaves: []
       emulatorSaves: true
       emulatorSaveTemplates: []
+      findUnknownSavesOnStartup: true
       installDirSaves: true
       redirectWine: false
       showDeselectedGames: true
@@ -913,6 +915,17 @@ definitions:
         type: array
         items:
           type: string
+      dismissedUnknownSaves:
+        description: "Folders that you've dismissed when looking for unknown saves. These are not reported again."
+        default: []
+        type: array
+        items:
+          type: string
+        uniqueItems: true
+      findUnknownSavesOnStartup:
+        description: Look for unknown save folders when the GUI starts.
+        default: true
+        type: boolean
       installDirSaves:
         description: "Also check common save folders inside each game's install directory (saves, save, savegames, saved)."
         default: true
