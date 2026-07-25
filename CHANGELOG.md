@@ -45,6 +45,11 @@
     since their saves may be incomplete.
     You can change this with the "skip games that are currently running" option
     (`watch.skipRunningGames` in the config file).
+  * There is a new "dashboard" screen that summarizes the state of your backups:
+    where they are stored, how many games and restore points there are,
+    when the latest backup was made and how far the history goes back,
+    plus whether automatic backups and cloud sync are active
+    and how many unknown save folders were found.
   * Ludusavi now looks for unknown save folders when it starts
     and notifies you if it finds any,
     so that new saves don't go unnoticed.

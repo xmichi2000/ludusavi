@@ -319,6 +319,14 @@ pub fn find_unknown_saves<'a>(scanning: bool) -> Element<'a> {
     )
 }
 
+pub fn refresh_dashboard<'a>(refreshing: bool) -> Element<'a> {
+    template(
+        text(TRANSLATOR.refresh_button()).width(WIDTH),
+        (!refreshing).then_some(Message::RefreshDashboard),
+        None,
+    )
+}
+
 pub fn adopt_unknown_save<'a>(index: usize) -> Element<'a> {
     template(
         text(TRANSLATOR.adopt_button()),
@@ -348,6 +356,7 @@ pub fn nav<'a>(screen: Screen, current_screen: Screen) -> Button<'a> {
         Screen::Backup => TRANSLATOR.nav_backup_button(),
         Screen::Restore => TRANSLATOR.nav_restore_button(),
         Screen::CustomGames => TRANSLATOR.nav_custom_games_button(),
+        Screen::Dashboard => TRANSLATOR.nav_dashboard_button(),
         Screen::Other => TRANSLATOR.nav_other_button(),
     };
 

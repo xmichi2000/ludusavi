@@ -211,6 +211,8 @@ pub enum Message {
     },
     FindUnknownSaves,
     FoundUnknownSaves(Vec<UnknownSaveCandidate>),
+    RefreshDashboard,
+    DashboardRefreshed(Box<crate::gui::screen::DashboardStatus>),
     AdoptUnknownSave {
         index: usize,
     },
@@ -680,6 +682,7 @@ pub enum Screen {
     Backup,
     Restore,
     CustomGames,
+    Dashboard,
     Other,
 }
 
@@ -817,7 +820,8 @@ impl From<Screen> for ScrollSubject {
             Screen::Backup => Self::Backup,
             Screen::Restore => Self::Restore,
             Screen::CustomGames => Self::CustomGames,
-            Screen::Other => Self::Other,
+            // The dashboard is a short page, so it reuses the "other" scroll position.
+            Screen::Dashboard | Screen::Other => Self::Other,
         }
     }
 }

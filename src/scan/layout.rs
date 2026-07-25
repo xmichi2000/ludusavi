@@ -645,6 +645,11 @@ pub struct GameLayout {
 }
 
 impl GameLayout {
+    /// The full backups for this game, oldest first, each with its differential backups.
+    pub fn backups(&self) -> &VecDeque<FullBackup> {
+        &self.mapping.backups
+    }
+
     #[cfg(test)]
     pub fn new(path: StrictPath, mapping: IndividualMapping) -> Self {
         Self { path, mapping }

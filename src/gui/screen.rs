@@ -238,6 +238,126 @@ impl Restore {
     }
 }
 
+/// A summary of how your backups are doing, shown on the dashboard.
+#[derive(Clone, Debug, Default)]
+pub struct DashboardStatus {
+    /// Games that have at least one backup.
+    pub games: usize,
+    /// How many restore points there are in total.
+    pub restore_points: usize,
+    /// When the most recent backup of any game was made.
+    pub latest: Option<chrono::DateTime<chrono::Utc>>,
+    /// When the oldest still-retained backup was made.
+    pub earliest: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+impl DashboardStatus {
+    pub fn gather(config: &Config) -> Self {
+        let layout = crate::scan::layout::BackupLayout::new(config.backup.path.clone());
+
+        let mut status = Self::default();
+        for game in layout.restorable_games() {
+            let game_layout = layout.game_layout(&game);
+            if game_layout.backups().is_empty() {
+                continue;
+            }
+
+            status.games += 1;
+            for full in game_layout.backups() {
+                status.restore_points += 1 + full.children.len();
+
+                let newest = full.children.back().map(|x| x.when).unwrap_or(full.when);
+                status.latest = Some(status.latest.map(|x| x.max(newest)).unwrap_or(newest));
+                status.earliest = Some(status.earliest.map(|x| x.min(full.when)).unwrap_or(full.when));
+            }
+        }
+
+        status
+    }
+}
+
+#[derive(Default)]
+pub struct Dashboard {
+    /// The last gathered status, if any.
+    pub status: Option<DashboardStatus>,
+    /// Whether we are gathering the status right now.
+    pub refreshing: bool,
+}
+
+impl Dashboard {
+    pub fn view<'a>(&self, config: &Config, unknown_saves: Option<usize>) -> Element<'a> {
+        fn line<'a>(label: String, value: String) -> Row<'a> {
+            Row::new()
+                .spacing(15)
+                .align_y(Alignment::Center)
+                .push(Container::new(text(label)).align_right(220))
+                .push(text(value))
+        }
+
+        fn when(value: Option<chrono::DateTime<chrono::Utc>>) -> String {
+            match value {
+                None => "-".to_string(),
+                Some(value) => chrono::DateTime::<chrono::Local>::from(value)
+                    .format("%Y-%m-%d %H:%M")
+                    .to_string(),
+            }
+        }
+
+        let status = self.status.clone().unwrap_or_default();
+
+        let content = Column::new()
+            .push(
+                Container::new(
+                    Column::new()
+                        .padding(5)
+                        .spacing(10)
+                        .push(line(TRANSLATOR.backup_target_label(), config.backup.path.render()))
+                        .push(line(TRANSLATOR.dashboard_games_label(), status.games.to_string()))
+                        .push(line(
+                            TRANSLATOR.dashboard_restore_points_label(),
+                            status.restore_points.to_string(),
+                        ))
+                        .push(line(TRANSLATOR.dashboard_latest_label(), when(status.latest)))
+                        .push(line(TRANSLATOR.dashboard_earliest_label(), when(status.earliest))),
+                )
+                .class(style::Container::GameListEntry),
+            )
+            .push(
+                Container::new(
+                    Column::new()
+                        .padding(5)
+                        .spacing(10)
+                        .push(line(
+                            TRANSLATOR.dashboard_automatic_backups_label(),
+                            if config.watch.enabled {
+                                TRANSLATOR.dashboard_on()
+                            } else {
+                                TRANSLATOR.dashboard_off()
+                            },
+                        ))
+                        .push(line(
+                            TRANSLATOR.dashboard_cloud_label(),
+                            match config.cloud.remote.as_ref() {
+                                Some(remote) => format!("{} ({})", remote.id(), config.cloud.path),
+                                None => TRANSLATOR.dashboard_off(),
+                            },
+                        ))
+                        .push(line(
+                            TRANSLATOR.dashboard_unknown_saves_label(),
+                            match unknown_saves {
+                                Some(total) => total.to_string(),
+                                None => "-".to_string(),
+                            },
+                        )),
+                )
+                .class(style::Container::GameListEntry),
+            )
+            .push(button::refresh_dashboard(self.refreshing));
+
+        template(content)
+    }
+}
+
 #[derive(Default)]
 pub struct CustomGames {
     pub filter: CustomGamesFilter,

@@ -99,6 +99,7 @@ pub struct App {
     backup_screen: screen::Backup,
     restore_screen: screen::Restore,
     custom_games_screen: screen::CustomGames,
+    dashboard_screen: screen::Dashboard,
     operation_should_cancel: std::sync::Arc<std::sync::atomic::AtomicBool>,
     operation_steps: Vec<OperationStep>,
     operation_steps_active: usize,
@@ -1338,6 +1339,12 @@ impl App {
 
     fn switch_screen(&mut self, screen: Screen) -> Task<Message> {
         self.screen = screen;
+
+        // The dashboard should reflect the current state whenever you open it.
+        if screen == Screen::Dashboard {
+            return Task::batch([self.refresh_scroll_position(), Task::done(Message::RefreshDashboard)]);
+        }
+
         self.refresh_scroll_position()
     }
 
@@ -2302,6 +2309,7 @@ impl App {
                             self.custom_games_screen.filter.enabled = !self.custom_games_screen.filter.enabled;
                             task = Some(iced::widget::operation::focus(id::custom_games_search()));
                         }
+                        Screen::Dashboard => {}
                         Screen::Other => {}
                     },
                     game_filter::Event::ToggledFilter { filter, enabled } => match self.screen {
@@ -2312,6 +2320,7 @@ impl App {
                             self.restore_screen.log.search.toggle_filter(filter, enabled);
                         }
                         Screen::CustomGames => {}
+                        Screen::Dashboard => {}
                         Screen::Other => {}
                     },
                     game_filter::Event::EditedGameName(value) => match self.screen {
@@ -2327,6 +2336,7 @@ impl App {
                             self.text_histories.custom_games_search_game_name.push(&value);
                             self.custom_games_screen.filter.name = value;
                         }
+                        Screen::Dashboard => {}
                         Screen::Other => {}
                     },
                     game_filter::Event::Reset => match self.screen {
@@ -2342,6 +2352,7 @@ impl App {
                             self.custom_games_screen.filter.reset();
                             self.text_histories.custom_games_search_game_name.push("");
                         }
+                        Screen::Dashboard => {}
                         Screen::Other => {}
                     },
                     game_filter::Event::EditedFilterUniqueness(value) => match self.screen {
@@ -2352,6 +2363,7 @@ impl App {
                             self.restore_screen.log.search.uniqueness.choice = value;
                         }
                         Screen::CustomGames => {}
+                        Screen::Dashboard => {}
                         Screen::Other => {}
                     },
                     game_filter::Event::EditedFilterCompleteness(value) => match self.screen {
@@ -2362,6 +2374,7 @@ impl App {
                             self.restore_screen.log.search.completeness.choice = value;
                         }
                         Screen::CustomGames => {}
+                        Screen::Dashboard => {}
                         Screen::Other => {}
                     },
                     game_filter::Event::EditedFilterEnablement(value) => match self.screen {
@@ -2372,6 +2385,7 @@ impl App {
                             self.restore_screen.log.search.enablement.choice = value;
                         }
                         Screen::CustomGames => {}
+                        Screen::Dashboard => {}
                         Screen::Other => {}
                     },
                     game_filter::Event::EditedFilterChange(value) => match self.screen {
@@ -2382,6 +2396,7 @@ impl App {
                             self.restore_screen.log.search.change.choice = value;
                         }
                         Screen::CustomGames => {}
+                        Screen::Dashboard => {}
                         Screen::Other => {}
                     },
                     game_filter::Event::EditedFilterManifest(value) => match self.screen {
@@ -2392,6 +2407,7 @@ impl App {
                             self.restore_screen.log.search.manifest.choice = value;
                         }
                         Screen::CustomGames => {}
+                        Screen::Dashboard => {}
                         Screen::Other => {}
                     },
                 }
@@ -3025,6 +3041,22 @@ impl App {
                     Message::FoundUnknownSaves,
                 )
             }
+            Message::RefreshDashboard => {
+                if self.dashboard_screen.refreshing {
+                    return Task::none();
+                }
+                self.dashboard_screen.refreshing = true;
+
+                let config = self.config.clone();
+                Task::perform(async move { screen::DashboardStatus::gather(&config) }, |status| {
+                    Message::DashboardRefreshed(Box::new(status))
+                })
+            }
+            Message::DashboardRefreshed(status) => {
+                self.dashboard_screen.refreshing = false;
+                self.dashboard_screen.status = Some(*status);
+                Task::none()
+            }
             Message::FoundUnknownSaves(candidates) => {
                 self.custom_games_screen.scanning_unknown_saves = false;
                 // When we looked on our own, say so, since the user isn't watching that screen.
@@ -3200,6 +3232,7 @@ impl App {
                     .push(button::nav(Screen::Backup, self.screen))
                     .push(button::nav(Screen::Restore, self.screen))
                     .push(button::nav(Screen::CustomGames, self.screen))
+                    .push(button::nav(Screen::Dashboard, self.screen))
                     .push(button::nav(Screen::Other, self.screen)),
             )
             .push(match self.screen {
@@ -3223,6 +3256,10 @@ impl App {
                     !self.operation.idle(),
                     &self.text_histories,
                     &self.modifiers,
+                ),
+                Screen::Dashboard => self.dashboard_screen.view(
+                    &self.config,
+                    self.custom_games_screen.unknown_saves.as_ref().map(|x| x.len()),
                 ),
                 Screen::Other => screen::other(
                     self.updating_manifest,

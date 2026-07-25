@@ -130,6 +130,17 @@ field-retention-full = Full:
 field-retention-differential = Differential:
 # This appears next to a checkbox for deleting old backups based on their age
 # instead of based on the number of full backups to keep.
+nav-dashboard = Dashboard
+button-refresh = Refresh
+field-dashboard-games = Games with backups:
+field-dashboard-restore-points = Restore points:
+field-dashboard-latest = Latest backup:
+field-dashboard-earliest = History goes back to:
+field-dashboard-automatic-backups = Automatic backups:
+field-dashboard-cloud = Cloud:
+field-dashboard-unknown-saves = Unknown save folders:
+label-dashboard-on = On
+label-dashboard-off = Off
 check-find-unknown-saves-on-startup = Look for unknown save folders on startup
 # This appears as a notification when Ludusavi finds save folders
 # that don't match any known game.

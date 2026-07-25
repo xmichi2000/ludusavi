@@ -517,6 +517,50 @@ impl Translator {
         translate_args("cli-find-unknown-adopted", &args)
     }
 
+    pub fn nav_dashboard_button(&self) -> String {
+        translate("nav-dashboard")
+    }
+
+    pub fn refresh_button(&self) -> String {
+        translate("button-refresh")
+    }
+
+    pub fn dashboard_games_label(&self) -> String {
+        translate("field-dashboard-games")
+    }
+
+    pub fn dashboard_restore_points_label(&self) -> String {
+        translate("field-dashboard-restore-points")
+    }
+
+    pub fn dashboard_latest_label(&self) -> String {
+        translate("field-dashboard-latest")
+    }
+
+    pub fn dashboard_earliest_label(&self) -> String {
+        translate("field-dashboard-earliest")
+    }
+
+    pub fn dashboard_automatic_backups_label(&self) -> String {
+        translate("field-dashboard-automatic-backups")
+    }
+
+    pub fn dashboard_cloud_label(&self) -> String {
+        translate("field-dashboard-cloud")
+    }
+
+    pub fn dashboard_unknown_saves_label(&self) -> String {
+        translate("field-dashboard-unknown-saves")
+    }
+
+    pub fn dashboard_on(&self) -> String {
+        translate("label-dashboard-on")
+    }
+
+    pub fn dashboard_off(&self) -> String {
+        translate("label-dashboard-off")
+    }
+
     pub fn find_unknown_saves_on_startup(&self) -> String {
         translate("check-find-unknown-saves-on-startup")
     }
