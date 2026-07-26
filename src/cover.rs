@@ -127,6 +127,50 @@ pub fn forget_failures() {
     }
 }
 
+/// Use an image from the internet as a game's cover, replacing whatever we found.
+///
+/// This is how you can use artwork that no automatic source offers,
+/// such as a poster you found yourself.
+pub async fn set_from_url(config: &Config, game: &str, url: &str) -> bool {
+    let client = get_reqwest_client(config.runtime.network_security);
+
+    let Ok(response) = client.get(url).send().await else {
+        return false;
+    };
+    if !response.status().is_success() {
+        return false;
+    }
+    let Ok(bytes) = response.bytes().await else {
+        return false;
+    };
+    let Ok(image) = image::load_from_memory(&bytes) else {
+        return false;
+    };
+
+    let target = cached_path(game);
+    let _ = missing_marker(game).remove();
+    if target.parent().map(|x| x.create_dirs().is_err()).unwrap_or(true) {
+        return false;
+    }
+
+    target
+        .as_std_path_buf()
+        .ok()
+        .map(|path| {
+            round_corners(to_portrait(image))
+                .save_with_format(path, image::ImageFormat::Png)
+                .is_ok()
+        })
+        .unwrap_or(false)
+}
+
+/// Use an image of your own as a game's cover, replacing whatever we found.
+pub fn set_from_file(game: &str, source: &StrictPath) -> Option<StrictPath> {
+    let _ = cached_path(game).remove();
+    let _ = missing_marker(game).remove();
+    adopt_local(game, source)
+}
+
 /// Take a cover that's already on this computer into our own cache,
 /// cropped to portrait like everything else, so the list stays consistent.
 pub fn adopt_local(game: &str, source: &StrictPath) -> Option<StrictPath> {

@@ -344,3 +344,6 @@ field-igdb-client-secret = IGDB-Client-Secret:
 button-delete-custom-game = Dieses eigene Spiel löschen
 label-showing-duplicates-of = Es werden nur Spiele gezeigt, die sich Spielstände mit { $game } teilen.
 button-show-all-games = Alle Spiele anzeigen
+button-choose-cover-file = Titelbild aus Datei wählen…
+button-choose-cover-url = Titelbild von Adresse laden…
+cover-not-usable = Diese Datei konnte nicht als Titelbild verwendet werden.

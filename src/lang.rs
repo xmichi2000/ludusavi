@@ -405,6 +405,7 @@ impl Translator {
         match error {
             Error::ConfigInvalid { why } => self.config_is_invalid(why),
             Error::AutostartFailed { why } => self.autostart_failed(why),
+            Error::CoverNotUsable => self.cover_not_usable(),
             Error::ManifestInvalid { why, identifier } => self.manifest_is_invalid(why, identifier.as_deref()),
             Error::ManifestCannotBeUpdated { identifier } => self.manifest_cannot_be_updated(identifier.as_deref()),
             Error::CliUnrecognizedGames { games } => self.cli_unrecognized_games(games),
@@ -622,6 +623,18 @@ impl Translator {
 
     pub fn show_all_games_button(&self) -> String {
         translate("button-show-all-games")
+    }
+
+    pub fn cover_not_usable(&self) -> String {
+        translate("cover-not-usable")
+    }
+
+    pub fn choose_cover_file_button(&self) -> String {
+        translate("button-choose-cover-file")
+    }
+
+    pub fn choose_cover_url_button(&self) -> String {
+        translate("button-choose-cover-url")
     }
 
     pub fn delete_custom_game_button(&self) -> String {

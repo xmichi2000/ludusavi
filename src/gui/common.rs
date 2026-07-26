@@ -215,6 +215,13 @@ pub enum Message {
     OpenGameMenu {
         game: Option<String>,
     },
+    SetCoverFromUrl {
+        game: String,
+        url: String,
+    },
+    CoverChanged {
+        worked: bool,
+    },
     FetchCovers,
     FetchedCovers {
         /// Whether anything was found, so the list can refresh.
@@ -712,6 +719,8 @@ pub enum BrowseFileSubject {
     RcloneExecutable,
     RootLutrisDatabase(usize),
     SecondaryManifest(usize),
+    /// An image to use as a game's cover.
+    GameCover(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -858,6 +867,10 @@ pub enum GameAction {
     Unlock,
     MakeAlias,
     Blacklist,
+    /// Pick an image file to use as this game's cover.
+    ChooseCoverFile,
+    /// Type in the address of an image to use as this game's cover.
+    ChooseCoverUrl,
     /// Remove a game that you added yourself.
     DeleteCustomGame,
 }
@@ -898,6 +911,11 @@ impl GameAction {
         options.push(Self::MakeAlias);
 
         if !operating {
+            options.push(Self::ChooseCoverFile);
+            options.push(Self::ChooseCoverUrl);
+        }
+
+        if !operating {
             options.push(Self::Blacklist);
         }
 
@@ -935,6 +953,7 @@ impl GameAction {
             GameAction::Unlock => Icon::LockOpen,
             GameAction::MakeAlias => Icon::Edit,
             GameAction::Blacklist => Icon::VisibilityOff,
+            GameAction::ChooseCoverFile | GameAction::ChooseCoverUrl => Icon::Edit,
             GameAction::DeleteCustomGame => Icon::Delete,
         }
     }
@@ -965,6 +984,8 @@ impl ToString for GameAction {
             Self::Unlock => TRANSLATOR.unlock_button(),
             Self::MakeAlias => TRANSLATOR.alias_label(),
             Self::Blacklist => TRANSLATOR.blacklist_button(),
+            Self::ChooseCoverFile => TRANSLATOR.choose_cover_file_button(),
+            Self::ChooseCoverUrl => TRANSLATOR.choose_cover_url_button(),
             Self::DeleteCustomGame => TRANSLATOR.delete_custom_game_button(),
         }
     }

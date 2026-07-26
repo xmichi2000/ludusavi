@@ -2483,6 +2483,16 @@ impl App {
                         self.text_histories.rclone_executable.push(path.raw());
                         self.config.apps.rclone.path = path;
                     }
+                    BrowseFileSubject::GameCover(game) => {
+                        if ludusavi::cover::set_from_file(&game, &path).is_some() {
+                            crate::gui::cover::clear_cache();
+                        } else {
+                            return self.show_modal(Modal::Error {
+                                variant: Error::CoverNotUsable,
+                            });
+                        }
+                        return Task::none();
+                    }
                     BrowseFileSubject::RootLutrisDatabase(i) => {
                         self.text_histories.roots[i].lutris_database.push(path.raw());
                         if let Root::Lutris(root) = &mut self.config.roots[i] {
@@ -2596,6 +2606,11 @@ impl App {
             Message::OpenFileSubject(subject) => {
                 let path = match subject {
                     BrowseFileSubject::RcloneExecutable => self.config.apps.rclone.path.clone(),
+                    // There is nothing to reveal until a cover has been chosen.
+                    BrowseFileSubject::GameCover(game) => match ludusavi::cover::cached(&game) {
+                        Some(path) => path,
+                        None => return Task::none(),
+                    },
                     BrowseFileSubject::RootLutrisDatabase(i) => {
                         let Root::Lutris(root) = &self.config.roots[i] else {
                             return Task::none();
@@ -2859,6 +2874,8 @@ impl App {
                     }
                     Task::none()
                 }
+                GameAction::ChooseCoverFile => Task::done(Message::BrowseFile(BrowseFileSubject::GameCover(game))),
+                GameAction::ChooseCoverUrl => self.show_modal(Modal::CoverUrl { game }),
                 GameAction::DeleteCustomGame => {
                     if let Some(index) = self.config.custom_games.iter().position(|x| x.name == game) {
                         self.config.custom_games.remove(index);
@@ -3132,6 +3149,23 @@ impl App {
             Message::OpenGameMenu { game } => {
                 self.game_menu_for = game;
                 Task::none()
+            }
+            Message::SetCoverFromUrl { game, url } => {
+                let config = self.config.clone();
+                Task::perform(
+                    async move { ludusavi::cover::set_from_url(&config, &game, &url).await },
+                    |worked| Message::CoverChanged { worked },
+                )
+            }
+            Message::CoverChanged { worked } => {
+                crate::gui::cover::clear_cache();
+                if worked {
+                    self.close_modal()
+                } else {
+                    self.show_modal(Modal::Error {
+                        variant: Error::CoverNotUsable,
+                    })
+                }
             }
             Message::FetchCovers => {
                 if !self.config.covers.show || !self.config.covers.download || self.fetching_covers {

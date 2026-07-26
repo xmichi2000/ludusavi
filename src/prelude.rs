@@ -100,6 +100,8 @@ pub enum Error {
     AutostartFailed {
         why: String,
     },
+    /// The chosen file could not be used as cover art.
+    CoverNotUsable,
     CliUnrecognizedGames {
         games: Vec<String>,
     },

@@ -133,6 +133,7 @@ pub enum Kind {
     ConfigureWebDavRemote,
     GameNotes,
     ActiveScanGames,
+    CoverUrl,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -178,6 +179,10 @@ pub enum Modal {
         notes: Vec<manifest::Note>,
     },
     ActiveScanGames,
+    /// Ask for the address of an image to use as a game's cover.
+    CoverUrl {
+        game: String,
+    },
 }
 
 impl Modal {
@@ -199,6 +204,7 @@ impl Modal {
             Modal::ConfigureWebDavRemote { .. } => Kind::ConfigureWebDavRemote,
             Modal::GameNotes { .. } => Kind::GameNotes,
             Modal::ActiveScanGames => Kind::ActiveScanGames,
+            Modal::CoverUrl { .. } => Kind::CoverUrl,
         }
     }
 
@@ -221,6 +227,7 @@ impl Modal {
             Modal::ConfigureWebDavRemote { .. } => false,
             Modal::GameNotes { .. } => false,
             Modal::ActiveScanGames => false,
+            Modal::CoverUrl { .. } => false,
         }
     }
 
@@ -238,7 +245,8 @@ impl Modal {
             | Self::ConfigureFtpRemote { .. }
             | Self::ConfigureSmbRemote { .. }
             | Self::ConfigureWebDavRemote { .. }
-            | Self::AppUpdate { .. } => ModalVariant::Confirm,
+            | Self::AppUpdate { .. }
+            | Self::CoverUrl { .. } => ModalVariant::Confirm,
             Self::BackupValidation { games } => {
                 if games.is_empty() {
                     ModalVariant::Info
@@ -297,6 +305,7 @@ impl Modal {
             Self::ConfigureWebDavRemote { .. } => RemoteChoice::WebDav.to_string(),
             Self::GameNotes { game, .. } => game.clone(),
             Self::ActiveScanGames => "".to_string(),
+            Self::CoverUrl { game } => game.clone(),
         }
     }
 
@@ -331,6 +340,13 @@ impl Modal {
                         finality: Finality::Final,
                     })
                 }
+            }
+            Self::CoverUrl { game } => {
+                let url = histories.modal.url.current();
+                (!url.trim().is_empty()).then(|| Message::SetCoverFromUrl {
+                    game: game.clone(),
+                    url,
+                })
             }
             Self::ConfigureFtpRemote => {
                 let host = histories.modal.host.current();
@@ -421,6 +437,7 @@ impl Modal {
                 }
             }
             Self::Error { .. }
+            | Self::CoverUrl { .. }
             | Self::Errors { .. }
             | Self::Exiting
             | Self::ConfirmBackup { .. }
@@ -446,6 +463,9 @@ impl Modal {
             .push(text(self.text(config)));
 
         match self {
+            Self::CoverUrl { .. } => {
+                col = col.width(500).push(ModalField::view(ModalInputKind::Url, histories));
+            }
             Self::Error { .. }
             | Self::Errors { .. }
             | Self::Exiting
@@ -612,6 +632,7 @@ impl Modal {
                 changes.sort();
             }
             Self::Error { .. }
+            | Self::CoverUrl { .. }
             | Self::Errors { .. }
             | Self::Exiting
             | Self::ConfirmBackup { .. }
@@ -651,6 +672,7 @@ impl Modal {
                 };
             }
             Self::Error { .. }
+            | Self::CoverUrl { .. }
             | Self::Errors { .. }
             | Self::Exiting
             | Self::ConfirmBackup { .. }
@@ -674,6 +696,7 @@ impl Modal {
                 *page = new_page;
             }
             Self::Error { .. }
+            | Self::CoverUrl { .. }
             | Self::Errors { .. }
             | Self::Exiting
             | Self::ConfirmBackup { .. }
@@ -695,6 +718,7 @@ impl Modal {
         match self {
             Self::ConfirmCloudSync { state, .. } => !state.idle(),
             Self::Error { .. }
+            | Self::CoverUrl { .. }
             | Self::Errors { .. }
             | Self::Exiting
             | Self::ConfirmBackup { .. }
@@ -716,6 +740,7 @@ impl Modal {
         match self {
             Self::ConfirmCloudSync { .. } => 4,
             Self::Error { .. }
+            | Self::CoverUrl { .. }
             | Self::Errors { .. }
             | Self::Exiting
             | Self::ConfirmBackup { .. }
