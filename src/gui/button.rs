@@ -491,6 +491,7 @@ pub fn backup_preview<'a>(ongoing: &Operation, filtered: bool) -> Element<'a> {
             Operation::Idle => Some(Message::Backup(BackupPhase::Start {
                 preview: true,
                 repair: false,
+                background: false,
                 jump: false,
                 games: None,
             })),

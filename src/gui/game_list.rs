@@ -125,6 +125,7 @@ impl GameListEntry {
                                         ScanKind::Backup => Some(Message::Backup(BackupPhase::Start {
                                             preview: true,
                                             repair: false,
+                                            background: false,
                                             jump: false,
                                             games: Some(GameSelection::single(self.scan_info.game_name.clone())),
                                         })),

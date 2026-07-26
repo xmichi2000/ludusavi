@@ -377,6 +377,11 @@ cli-validate-faulty =
     }
 label-unknown-saves-scanning = Looking for unknown save folders...
 field-automatic-backups = Automatic backups
+dashboard-cloud-health = Connection
+dashboard-cloud-checking = Checking...
+dashboard-cloud-reachable = Working
+dashboard-cloud-unreachable = Not reachable ({ $why })
+field-general = General
 field-interface = Interface
 label-dashboard-health-good = Backups are up to date
 label-dashboard-health-stale = Backups are getting old
@@ -401,3 +406,4 @@ button-choose-cover-url = Cover image from address...
 cover-not-usable = That file could not be used as a cover image.
 label-dashboard-automatic-backups-explanation = Ludusavi watches which games are running and backs one up as soon as you close it, so you never have to remember. Details are on the settings screen.
 label-dashboard-cloud-never-synced = Not yet
+check-scan-on-startup = Scan all games on startup

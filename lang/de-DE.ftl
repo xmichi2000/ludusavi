@@ -326,6 +326,11 @@ cli-validate-faulty =
     }
 label-unknown-saves-scanning = Suche nach unbekannten Spielstand-Ordnern...
 field-automatic-backups = Automatische Sicherungen
+dashboard-cloud-health = Verbindung
+dashboard-cloud-checking = Wird geprüft...
+dashboard-cloud-reachable = Funktioniert
+dashboard-cloud-unreachable = Nicht erreichbar ({ $why })
+field-general = Allgemein
 field-interface = Darstellung
 label-dashboard-health-good = Sicherungen sind aktuell
 label-dashboard-health-stale = Sicherungen werden alt
@@ -349,3 +354,4 @@ button-choose-cover-url = Titelbild von Adresse laden…
 cover-not-usable = Diese Datei konnte nicht als Titelbild verwendet werden.
 label-dashboard-automatic-backups-explanation = Ludusavi beobachtet, welche Spiele laufen, und sichert ein Spiel, sobald du es beendest — du musst also an nichts denken. Einzelheiten stehen in den Einstellungen.
 label-dashboard-cloud-never-synced = Noch nie
+check-scan-on-startup = Beim Start alle Spiele durchsuchen

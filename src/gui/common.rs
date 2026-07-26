@@ -45,6 +45,9 @@ pub enum BackupPhase {
         preview: bool,
         /// Was this backup triggered by a validation check?
         repair: bool,
+        /// Keep whatever is already listed and only fill in what the scan finds,
+        /// so a scan on startup does not empty the list you were looking at.
+        background: bool,
         /// Jump to the first game in the list after executing.
         jump: bool,
         games: Option<GameSelection>,
@@ -161,6 +164,9 @@ pub enum Message {
         url: String,
     },
     KeyboardEvent(iced::keyboard::Event),
+    WindowResized(f32),
+    CheckCloud,
+    CloudChecked(Result<(), String>),
     SelectedBackupToRestore {
         game: String,
         backup: Backup,

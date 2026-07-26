@@ -634,6 +634,19 @@ impl Rclone {
         Ok(())
     }
 
+    /// Ask the remote for a directory listing.
+    /// This proves that rclone runs, the remote is configured, and it answers,
+    /// which is what people mean when they ask whether their cloud sync works.
+    pub fn check(&self) -> Result<(), CommandError> {
+        self.configure_remote()?;
+        self.run(
+            &["lsd".to_string(), format!("{}:", self.remote.id())],
+            &[0],
+            Privacy::Public,
+        )?;
+        Ok(())
+    }
+
     pub fn sync(
         &self,
         local: &StrictPath,

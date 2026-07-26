@@ -361,6 +361,7 @@ pub fn custom_games<'a>(
                                         preview: true,
                                         jump: true,
                                         repair: false,
+                                        background: false,
                                     }),
                                     operating,
                                     config.is_custom_game_individually_scannable(i),

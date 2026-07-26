@@ -152,11 +152,16 @@ where
     ) {
         let state = tree.state.downcast_mut::<State<T>>();
 
+        if let Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Right)) = event {
+            state.last_right_click = cursor.position();
+        }
+
         // Something outside of the menu, such as a right click on the row, asked for it.
         if self.requested_open {
             if !state.honored_request {
                 state.honored_request = true;
                 state.is_open = !self.options.is_empty();
+                state.opened_at = state.last_right_click;
                 shell.invalidate_layout();
             }
         } else if state.honored_request {
@@ -178,6 +183,7 @@ where
                     shell.capture_event();
                 } else if cursor.is_over(layout.bounds()) {
                     state.is_open = !self.options.is_empty();
+                    state.opened_at = None;
 
                     shell.capture_event();
                 }
@@ -326,12 +332,13 @@ where
                 menu = menu.text_size(text_size);
             }
 
-            Some(menu.overlay(
-                layout.position() + translation,
-                *viewport,
-                bounds.height,
-                Length::Shrink,
-            ))
+            // A menu asked for by a right click belongs at the pointer.
+            let (position, offset) = match state.opened_at {
+                Some(point) => (point, 0.0),
+                None => (layout.position() + translation, bounds.height),
+            };
+
+            Some(menu.overlay(position, *viewport, offset, Length::Shrink))
         } else {
             None
         }
@@ -359,6 +366,10 @@ pub struct State<T> {
     is_open: bool,
     /// Whether we already acted on the current outside request.
     honored_request: bool,
+    /// Where the pointer last right-clicked, so a menu opened that way
+    /// appears where you clicked instead of beside its button.
+    last_right_click: Option<iced::Point>,
+    opened_at: Option<iced::Point>,
     hovered_option: Option<usize>,
     last_selection: Option<T>,
 }
@@ -370,6 +381,8 @@ impl<T> State<T> {
             menu: menu::State::default(),
             is_open: bool::default(),
             honored_request: false,
+            last_right_click: None,
+            opened_at: None,
             hovered_option: Option::default(),
             last_selection: Option::default(),
         }

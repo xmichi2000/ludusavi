@@ -611,6 +611,28 @@ impl Translator {
         translate("label-locations-differ")
     }
 
+    pub fn dashboard_cloud_health_label(&self) -> String {
+        translate("dashboard-cloud-health")
+    }
+
+    pub fn dashboard_cloud_checking(&self) -> String {
+        translate("dashboard-cloud-checking")
+    }
+
+    pub fn dashboard_cloud_reachable(&self) -> String {
+        translate("dashboard-cloud-reachable")
+    }
+
+    pub fn dashboard_cloud_unreachable(&self, why: &str) -> String {
+        let mut args = FluentArgs::new();
+        args.set("why", why);
+        translate_args("dashboard-cloud-unreachable", &args)
+    }
+
+    pub fn general_field(&self) -> String {
+        translate("field-general")
+    }
+
     pub fn interface_field(&self) -> String {
         translate("field-interface")
     }
@@ -667,6 +689,10 @@ impl Translator {
 
     pub fn igdb_client_secret_label(&self) -> String {
         translate("field-igdb-client-secret")
+    }
+
+    pub fn scan_on_startup(&self) -> String {
+        translate("check-scan-on-startup")
     }
 
     pub fn find_unknown_saves_on_startup(&self) -> String {

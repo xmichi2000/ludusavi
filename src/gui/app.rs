@@ -120,6 +120,10 @@ pub struct App {
     pending_save: HashMap<SaveKind, Instant>,
     modifiers: keyboard::Modifiers,
     jump_to_game_after_scan: Option<String>,
+    /// Screens use this to lay out wide windows in more than one column.
+    window_width: f32,
+    /// Result of the last cloud connection check.
+    cloud_health: screen::CloudHealth,
 }
 
 impl App {
@@ -325,6 +329,7 @@ impl App {
             BackupPhase::Start {
                 preview,
                 repair,
+                background,
                 jump,
                 mut games,
             } => {
@@ -341,7 +346,9 @@ impl App {
                             &self.manifest.extended,
                             &self.backup_screen.duplicate_detector,
                         )));
-                    } else {
+                    } else if !background {
+                        // A background scan keeps the list you are looking at and
+                        // only fills in whatever it finds.
                         self.backup_screen.log.clear();
                         self.backup_screen.duplicate_detector.clear();
                         self.reset_scroll_position(ScrollSubject::Backup);
@@ -1512,6 +1519,20 @@ impl App {
             ));
         }
 
+        // Ask for the window size right away, since layout depends on it and we
+        // would otherwise wait for the first resize.
+        commands.push(
+            iced::window::latest()
+                .and_then(iced::window::size)
+                .map(|size| Message::WindowResized(size.width)),
+        );
+
+        // Knowing that the cloud still answers is only useful if you learn it
+        // before you rely on it, so the check runs as the app comes up.
+        if config.cloud.remote.is_some() {
+            commands.push(Task::done(Message::CheckCloud));
+        }
+
         if config.release.check && cache.should_check_app_update() {
             commands.push(Task::future(async move {
                 let result = crate::metadata::Release::fetch(config.runtime.network_security).await;
@@ -2060,6 +2081,9 @@ impl App {
                         self.text_histories.igdb_client_secret.push(&value);
                         self.config.covers.igdb_client_secret = (!value.trim().is_empty()).then_some(value);
                     }
+                    config::Event::ScanOnStartup(value) => {
+                        self.config.scan.scan_on_startup = value;
+                    }
                     config::Event::FindUnknownSavesOnStartup(value) => {
                         self.config.scan.find_unknown_saves_on_startup = value;
                     }
@@ -2254,6 +2278,18 @@ impl App {
                 }
                 // The manifest is what tells us each game's Steam ID, so covers wait for it too.
                 tasks.push(Task::done(Message::FetchCovers));
+
+                // Scanning once now means that opening a game later just shows what was found,
+                // instead of making you wait for a scan at that moment.
+                if self.config.scan.scan_on_startup && self.backup_screen.log.entries.iter().all(|x| !x.scanned) {
+                    tasks.push(Task::done(Message::Backup(BackupPhase::Start {
+                        preview: true,
+                        repair: false,
+                        background: true,
+                        jump: false,
+                        games: None,
+                    })));
+                }
 
                 Task::batch(tasks)
             }
@@ -2639,6 +2675,40 @@ impl App {
             Message::OpenUrlFailure { url } => self.show_modal(Modal::Error {
                 variant: Error::UnableToOpenUrl(url),
             }),
+            Message::CheckCloud => {
+                let Some(remote) = self.config.cloud.remote.clone() else {
+                    self.cloud_health = screen::CloudHealth::Off;
+                    return Task::none();
+                };
+
+                self.cloud_health = screen::CloudHealth::Checking;
+                let app = self.config.apps.rclone.clone();
+
+                Task::perform(
+                    async move { tokio::task::spawn_blocking(move || crate::cloud::Rclone::new(app, remote).check()).await },
+                    |join| match join {
+                        Ok(Ok(_)) => Message::CloudChecked(Ok(())),
+                        Ok(Err(error)) => {
+                            Message::CloudChecked(Err(TRANSLATOR.handle_error(&Error::UnableToSynchronizeCloud(error))))
+                        }
+                        Err(_) => Message::Ignore,
+                    },
+                )
+            }
+            Message::CloudChecked(result) => {
+                self.cloud_health = match result {
+                    Ok(_) => screen::CloudHealth::Reachable,
+                    // Keep it to one line, since the dashboard shows it inline.
+                    Err(why) => {
+                        screen::CloudHealth::Unreachable(why.lines().next().unwrap_or_default().trim().to_string())
+                    }
+                };
+                Task::none()
+            }
+            Message::WindowResized(width) => {
+                self.window_width = width;
+                Task::none()
+            }
             Message::KeyboardEvent(event) => {
                 if let iced::keyboard::Event::ModifiersChanged(modifiers) = event {
                     self.modifiers = modifiers;
@@ -2822,6 +2892,7 @@ impl App {
                 GameAction::PreviewBackup => self.handle_backup(BackupPhase::Start {
                     preview: true,
                     repair: false,
+                    background: false,
                     jump: false,
                     games: Some(GameSelection::single(game)),
                 }),
@@ -2834,6 +2905,7 @@ impl App {
                         self.handle_backup(BackupPhase::Start {
                             preview: false,
                             repair: false,
+                            background: false,
                             jump: false,
                             games: Some(GameSelection::single(game)),
                         })
@@ -3224,9 +3296,12 @@ impl App {
                 self.dashboard_screen.refreshing = true;
 
                 let config = self.config.clone();
-                Task::perform(async move { screen::DashboardStatus::gather(&config) }, |status| {
-                    Message::DashboardRefreshed(Box::new(status))
-                })
+                Task::batch([
+                    Task::perform(async move { screen::DashboardStatus::gather(&config) }, |status| {
+                        Message::DashboardRefreshed(Box::new(status))
+                    }),
+                    Task::done(Message::CheckCloud),
+                ])
             }
             Message::DashboardRefreshed(status) => {
                 self.dashboard_screen.refreshing = false;
@@ -3364,6 +3439,10 @@ impl App {
             iced::event::listen_with(|event, _status, _window| match event {
                 iced::Event::Keyboard(event) => Some(Message::KeyboardEvent(event)),
                 iced::Event::Window(iced::window::Event::CloseRequested) => Some(Message::Exit { user: true }),
+                iced::Event::Window(iced::window::Event::Resized(size))
+                | iced::Event::Window(iced::window::Event::Opened { size, .. }) => {
+                    Some(Message::WindowResized(size.width))
+                }
                 _ => None,
             }),
             rclone_monitor::run().map(Message::RcloneMonitor),
@@ -3439,6 +3518,8 @@ impl App {
                     &self.config,
                     &self.cache,
                     self.custom_games_screen.unknown_saves.as_ref().map(|x| x.len()),
+                    &self.cloud_health,
+                    self.window_width,
                 ),
                 Screen::Other => screen::other(
                     self.updating_manifest,
@@ -3447,6 +3528,7 @@ impl App {
                     &self.operation,
                     &self.text_histories,
                     &self.modifiers,
+                    self.window_width,
                 ),
             })
             .push(self.timed_notification.as_ref().map(|x| x.view()))

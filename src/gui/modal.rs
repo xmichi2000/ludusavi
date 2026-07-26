@@ -321,6 +321,7 @@ impl Modal {
             Self::ConfirmBackup { games } => Some(Message::Backup(BackupPhase::Start {
                 preview: false,
                 repair: false,
+                background: false,
                 jump: false,
                 games: games.clone(),
             })),
@@ -430,6 +431,7 @@ impl Modal {
                         Some(Message::Backup(BackupPhase::Start {
                             preview: false,
                             repair: true,
+                            background: false,
                             jump: false,
                             games: Some(GameSelection::group(games.iter().cloned().collect())),
                         })),
