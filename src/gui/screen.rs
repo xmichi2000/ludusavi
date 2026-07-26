@@ -1,6 +1,6 @@
-﻿use std::collections::HashSet;
+use std::collections::HashSet;
 
-use iced::{Alignment, Length, keyboard, padding};
+use iced::{Alignment, Length, keyboard, padding, widget::tooltip};
 
 use crate::{
     cloud::{Remote, RemoteChoice},
@@ -14,7 +14,9 @@ use crate::{
         search::CustomGamesFilter,
         shortcuts::TextHistories,
         style,
-        widget::{Button, Column, Container, Element, IcedParentExt, Row, checkbox, number_input, pick_list, text},
+        widget::{
+            Button, Column, Container, Element, IcedParentExt, Row, Tooltip, checkbox, number_input, pick_list, text,
+        },
     },
     lang::{Language, TRANSLATOR},
     prelude::{AVAILABLE_PARALELLISM, STEAM_DECK},
@@ -493,7 +495,9 @@ impl CustomGames {
     fn view_unknown_saves(&self) -> Element<'_> {
         let candidates = self.unknown_saves.as_deref().unwrap_or_default();
 
-        let mut column = Column::new().spacing(5).push(text(TRANSLATOR.unknown_saves_label()));
+        let mut column = Column::new()
+            .spacing(16)
+            .push(text(TRANSLATOR.unknown_saves_label()).size(20));
 
         if candidates.is_empty() {
             column = column.push(text(TRANSLATOR.no_unknown_saves_found()));
@@ -505,28 +509,46 @@ impl CustomGames {
                 .map(|x| x.format("%Y-%m-%d").to_string())
                 .unwrap_or_else(|| "?".to_string());
 
+            // The folder name leads; the full path lives in the tooltip.
+            // See docs/design-system.md.
+            let path = candidate.path.render();
+            let name = candidate.path.leaf().unwrap_or_else(|| path.clone());
+            let detail = format!(
+                "{} · {} · {}",
+                TRANSLATOR.adjusted_size(candidate.bytes),
+                TRANSLATOR.processed_subset(candidate.files as usize, candidate.files as usize),
+                modified,
+            );
+
             column = column.push(
                 Row::new()
-                    .spacing(10)
+                    .spacing(8)
                     .align_y(Alignment::Center)
-                    .push(button::adopt_unknown_save(index))
-                    .push(button::dismiss_unknown_save(index))
-                    .push(text(TRANSLATOR.cli_find_unknown_candidate(
-                        &candidate.path.render(),
-                        candidate.files,
-                        &TRANSLATOR.adjusted_size(candidate.bytes),
-                        &modified,
-                    )))
+                    .push(
+                        Container::new(
+                            Column::new()
+                                .spacing(4)
+                                .push(
+                                    Tooltip::new(text(name).size(16), text(path), tooltip::Position::Top)
+                                        .gap(4)
+                                        .class(style::Container::Tooltip),
+                                )
+                                .push(text(detail).size(12)),
+                        )
+                        .width(Length::Fill),
+                    )
                     .push_if(candidate.unknown_steam_id.is_some(), || {
                         Badge::new(
                             &TRANSLATOR.cli_find_unknown_steam_id(candidate.unknown_steam_id.unwrap_or_default()),
                         )
                         .view()
-                    }),
+                    })
+                    .push(button::adopt_unknown_save(index))
+                    .push(button::dismiss_unknown_save(index)),
             );
         }
 
-        Container::new(column).padding([0, 20]).into()
+        Container::new(column).padding([0, 16]).into()
     }
 
     fn is_filtered(&self) -> bool {

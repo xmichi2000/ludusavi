@@ -163,6 +163,9 @@ impl iced::widget::overlay::menu::Catalog for Theme {
 pub enum Button {
     #[default]
     Primary,
+    /// Everything that isn't the one primary action of a view.
+    /// See docs/design-system.md.
+    Secondary,
     Negative,
     GameActionPrimary,
     GameListEntryTitle,
@@ -192,16 +195,18 @@ impl button::Catalog for Theme {
                 Button::Negative => Some(self.negative.into()),
                 Button::NavButtonActive => Some(self.navigation.alpha(0.9).into()),
                 Button::NavButtonInactive => None,
+                Button::Secondary => None,
                 Button::Badge => None,
                 Button::Bare => None,
             },
             border: Border {
                 color: match class {
                     Button::NavButtonActive | Button::NavButtonInactive => self.navigation,
+                    Button::Secondary => self.text.alpha(0.35),
                     _ => Color::TRANSPARENT,
                 },
                 width: match class {
-                    Button::NavButtonActive | Button::NavButtonInactive => 1.0,
+                    Button::NavButtonActive | Button::NavButtonInactive | Button::Secondary => 1.0,
                     _ => 0.0,
                 },
                 radius: match class {
@@ -218,12 +223,12 @@ impl button::Catalog for Theme {
             text_color: match class {
                 Button::GameListEntryTitleDisabled => self.text_skipped.alpha(0.8),
                 Button::GameListEntryTitleUnscanned => self.text.alpha(0.8),
-                Button::NavButtonInactive | Button::Bare => self.text,
+                Button::NavButtonInactive | Button::Bare | Button::Secondary => self.text,
                 _ => self.text_button.alpha(0.8),
             },
             shadow: Shadow {
                 offset: match class {
-                    Button::NavButtonActive | Button::NavButtonInactive => Vector::new(0.0, 0.0),
+                    Button::NavButtonActive | Button::NavButtonInactive | Button::Secondary => Vector::new(0.0, 0.0),
                     _ => Vector::new(1.0, 1.0),
                 },
                 ..Default::default()
@@ -261,7 +266,9 @@ impl button::Catalog for Theme {
                 },
                 shadow: Shadow {
                     offset: match class {
-                        Button::NavButtonActive | Button::NavButtonInactive => Vector::new(0.0, 0.0),
+                        Button::NavButtonActive | Button::NavButtonInactive | Button::Secondary => {
+                            Vector::new(0.0, 0.0)
+                        }
                         _ => Vector::new(1.0, 2.0),
                     },
                     ..Default::default()

@@ -166,7 +166,11 @@ pub fn reset_filter<'a>(dirty: bool) -> Element<'a> {
 }
 
 pub fn sort<'a>(message: impl Into<Message>) -> Element<'a> {
-    template(text(TRANSLATOR.sort_button()).width(WIDTH), Some(message.into()), None)
+    template(
+        text(TRANSLATOR.sort_button()).width(WIDTH),
+        Some(message.into()),
+        Some(style::Button::Secondary),
+    )
 }
 
 pub fn sort_order<'a>(reversed: bool) -> Element<'a> {
@@ -268,7 +272,7 @@ pub fn toggle_all_scanned_games<'a>(all_enabled: bool, filtered: bool) -> Elemen
         template_extended(
             text(TRANSLATOR.disable_all_button()).width(WIDTH),
             Some(Message::DeselectAllGames),
-            None,
+            Some(style::Button::Secondary),
             filtered.then_some(Icon::Filter),
             filtered.then(|| TRANSLATOR.operation_will_only_include_listed_games()),
         )
@@ -276,7 +280,7 @@ pub fn toggle_all_scanned_games<'a>(all_enabled: bool, filtered: bool) -> Elemen
         template_extended(
             text(TRANSLATOR.enable_all_button()).width(WIDTH),
             Some(Message::SelectAllGames),
-            None,
+            Some(style::Button::Secondary),
             filtered.then_some(Icon::Filter),
             filtered.then(|| TRANSLATOR.operation_will_only_include_listed_games()),
         )
@@ -315,7 +319,7 @@ pub fn find_unknown_saves<'a>(scanning: bool) -> Element<'a> {
     template(
         text(TRANSLATOR.find_unknown_saves_button()).width(WIDTH),
         (!scanning).then_some(Message::FindUnknownSaves),
-        None,
+        Some(style::Button::Secondary),
     )
 }
 
@@ -323,7 +327,7 @@ pub fn refresh_dashboard<'a>(refreshing: bool) -> Element<'a> {
     template(
         text(TRANSLATOR.refresh_button()).width(WIDTH),
         (!refreshing).then_some(Message::RefreshDashboard),
-        None,
+        Some(style::Button::Secondary),
     )
 }
 
@@ -331,7 +335,7 @@ pub fn adopt_unknown_save<'a>(index: usize) -> Element<'a> {
     template(
         text(TRANSLATOR.adopt_button()),
         Some(Message::AdoptUnknownSave { index }),
-        None,
+        Some(style::Button::Secondary),
     )
 }
 
@@ -339,7 +343,7 @@ pub fn dismiss_unknown_save<'a>(index: usize) -> Element<'a> {
     template(
         Icon::RemoveCircle.text(),
         Some(Message::DismissUnknownSave { index }),
-        Some(style::Button::Negative),
+        Some(style::Button::Secondary),
     )
 }
 
@@ -488,14 +492,18 @@ pub fn backup_preview<'a>(ongoing: &Operation, filtered: bool) -> Element<'a> {
             } => Some(Message::CancelOperation),
             _ => None,
         },
-        matches!(
+        // Previewing is not the primary action here; backing up is.
+        if matches!(
             ongoing,
             Operation::Backup {
                 finality: Finality::Preview,
                 ..
             }
-        )
-        .then_some(style::Button::Negative),
+        ) {
+            Some(style::Button::Negative)
+        } else {
+            Some(style::Button::Secondary)
+        },
         filtered.then_some(Icon::Filter),
         filtered.then(|| TRANSLATOR.operation_will_only_include_listed_games()),
     )
@@ -569,14 +577,18 @@ pub fn restore_preview<'a>(ongoing: &Operation, filtered: bool) -> Element<'a> {
             } => Some(Message::CancelOperation),
             _ => None,
         },
-        matches!(
+        // Previewing is not the primary action here; restoring is.
+        if matches!(
             ongoing,
             Operation::Restore {
                 finality: Finality::Preview,
                 ..
             }
-        )
-        .then_some(style::Button::Negative),
+        ) {
+            Some(style::Button::Negative)
+        } else {
+            Some(style::Button::Secondary)
+        },
         filtered.then_some(Icon::Filter),
         filtered.then(|| TRANSLATOR.operation_will_only_include_listed_games()),
     )
@@ -596,7 +608,11 @@ pub fn validate_backups<'a>(ongoing: &Operation) -> Element<'a> {
             Operation::ValidateBackups { cancelling: false, .. } => Some(Message::CancelOperation),
             _ => None,
         },
-        matches!(ongoing, Operation::ValidateBackups { .. }).then_some(style::Button::Negative),
+        if matches!(ongoing, Operation::ValidateBackups { .. }) {
+            Some(style::Button::Negative)
+        } else {
+            Some(style::Button::Secondary)
+        },
     )
 }
 
