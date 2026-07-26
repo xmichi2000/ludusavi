@@ -1,4 +1,4 @@
-//! Finding cover art for games.
+﻿//! Finding cover art for games.
 //!
 //! Covers come from several places, tried in order:
 //! what Steam has already downloaded, Steam's own servers,
@@ -29,6 +29,40 @@ const MIN_BYTES: usize = 1024;
 /// See docs/design-system.md.
 const ASPECT_WIDTH: u32 = 2;
 const ASPECT_HEIGHT: u32 = 3;
+
+/// Corner radius baked into the image, since the toolkit can't round an image itself.
+const CORNER: u32 = 10;
+
+/// Round the corners by making the pixels outside them transparent,
+/// so that cover art reads as artwork rather than a pasted rectangle.
+fn round_corners(image: image::DynamicImage) -> image::RgbaImage {
+    let mut image = image.to_rgba8();
+    let (width, height) = (image.width(), image.height());
+    let radius = CORNER.min(width / 4).min(height / 4);
+    if radius == 0 {
+        return image;
+    }
+
+    let radius_squared = (radius * radius) as i64;
+    for (center_x, center_y, corner_x, corner_y) in [
+        (radius, radius, 0, 0),
+        (width - radius - 1, radius, width - radius, 0),
+        (radius, height - radius - 1, 0, height - radius),
+        (width - radius - 1, height - radius - 1, width - radius, height - radius),
+    ] {
+        for y in corner_y..(corner_y + radius).min(height) {
+            for x in corner_x..(corner_x + radius).min(width) {
+                let dx = x as i64 - center_x as i64;
+                let dy = y as i64 - center_y as i64;
+                if dx * dx + dy * dy > radius_squared {
+                    image.get_pixel_mut(x, y).0[3] = 0;
+                }
+            }
+        }
+    }
+
+    image
+}
 
 /// Make an image portrait by cropping the middle out of it,
 /// rather than squeezing it into shape.
@@ -87,7 +121,7 @@ pub fn adopt_local(game: &str, source: &StrictPath) -> Option<StrictPath> {
 
     let target = cached_path(game);
     target.parent()?.create_dirs().ok()?;
-    to_portrait(image)
+    round_corners(to_portrait(image))
         .save_with_format(target.as_std_path_buf().ok()?, image::ImageFormat::Png)
         .ok()?;
 
@@ -377,7 +411,7 @@ pub async fn fetch(config: &Config, manifest: &Manifest, game: &str) -> Option<S
         if target.parent().map(|x| x.create_dirs().is_err()).unwrap_or(true) {
             return None;
         }
-        if to_portrait(image)
+        if round_corners(to_portrait(image))
             .save_with_format(target.as_std_path_buf().ok()?, image::ImageFormat::Png)
             .is_ok()
         {
@@ -428,6 +462,38 @@ mod tests {
             Vec::<String>::new(),
             direct_urls(&Config::default(), &Manifest::default(), "Some Game")
         );
+    }
+
+    #[test]
+    fn crops_a_wide_image_to_portrait_instead_of_squeezing_it() {
+        let wide = image::DynamicImage::new_rgba8(460, 215);
+        let cropped = to_portrait(wide);
+
+        // 2:3, and the height is untouched.
+        assert_eq!(215, cropped.height());
+        assert_eq!(215 * 2 / 3, cropped.width());
+    }
+
+    #[test]
+    fn leaves_a_portrait_image_alone() {
+        let portrait = image::DynamicImage::new_rgba8(600, 900);
+        let result = to_portrait(portrait);
+
+        assert_eq!((600, 900), (result.width(), result.height()));
+    }
+
+    #[test]
+    fn makes_the_corners_transparent() {
+        let mut solid = image::RgbaImage::new(60, 90);
+        for pixel in solid.pixels_mut() {
+            *pixel = image::Rgba([255, 255, 255, 255]);
+        }
+
+        let rounded = round_corners(image::DynamicImage::ImageRgba8(solid));
+
+        // The very corner is cut away, but the middle is intact.
+        assert_eq!(0, rounded.get_pixel(0, 0).0[3]);
+        assert_eq!(255, rounded.get_pixel(30, 45).0[3]);
     }
 
     #[test]

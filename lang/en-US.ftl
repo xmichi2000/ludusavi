@@ -24,10 +24,10 @@ cli-find-unknown-steam-id = unknown Steam ID: {$id}
 cli-find-unknown-adopt-hint = To back up one of these folders, adopt it as a custom game: ludusavi find-unknown --adopt <path> --name "Game Title"
 cli-find-unknown-adopted = Added to custom games: {$game} ({$path})
 
-badge-failed = FAILED
-badge-duplicates = DUPLICATES
-badge-duplicated = DUPLICATED
-badge-ignored = IGNORED
+badge-failed = Failed
+badge-duplicates = Duplicates
+badge-duplicated = Duplicated
+badge-ignored = Ignored
 badge-redirected-from = FROM: {$path}
 badge-redirecting-to = TO: {$path}
 

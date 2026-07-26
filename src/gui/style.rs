@@ -1,4 +1,4 @@
-use iced::{
+﻿use iced::{
     Background, Border, Color, Shadow, Vector,
     widget::{button, checkbox, container, pick_list, scrollable, text_editor, text_input},
 };
@@ -35,9 +35,6 @@ pub struct Theme {
     negative: Color,
     disabled: Color,
     navigation: Color,
-    success: Color,
-    failure: Color,
-    skipped: Color,
     added: Color,
 }
 
@@ -50,31 +47,38 @@ impl Default for Theme {
 impl From<config::Theme> for Theme {
     fn from(source: config::Theme) -> Self {
         match source {
+            // One accent hue throughout, layered surfaces, and muted status colours.
+            // See docs/design-system.md.
             config::Theme::Light => Self {
                 source,
-                background: Color::WHITE,
-                field: rgb8!(230, 230, 230),
-                text: Color::BLACK,
+                background: rgb8!(250, 250, 252),
+                field: rgb8!(232, 233, 238),
+                text: rgb8!(24, 25, 30),
                 text_inverted: Color::WHITE,
                 text_button: Color::WHITE,
-                text_skipped: Color::BLACK,
-                text_selection: Color::from_rgb(0.8, 0.8, 1.0),
-                positive: rgb8!(28, 107, 223),
-                negative: rgb8!(255, 0, 0),
-                disabled: rgb8!(169, 169, 169),
-                navigation: rgb8!(136, 0, 219),
-                success: rgb8!(77, 127, 201),
-                failure: rgb8!(201, 77, 77),
-                skipped: rgb8!(230, 230, 230),
-                added: rgb8!(28, 223, 86),
+                text_skipped: rgb8!(24, 25, 30),
+                text_selection: rgb8!(206, 199, 255),
+                positive: rgb8!(101, 84, 235),
+                negative: rgb8!(206, 62, 62),
+                disabled: rgb8!(160, 162, 173),
+                navigation: rgb8!(101, 84, 235),
+                added: rgb8!(38, 166, 106),
             },
             config::Theme::Dark => Self {
                 source,
-                background: rgb8!(41, 41, 41),
-                field: rgb8!(74, 74, 74),
-                text: Color::WHITE,
-                text_inverted: Color::BLACK,
-                ..Self::from(config::Theme::Light)
+                // Slightly blue-black rather than flat grey, with a lifted surface.
+                background: rgb8!(20, 21, 26),
+                field: rgb8!(38, 40, 48),
+                text: rgb8!(238, 239, 244),
+                text_inverted: rgb8!(20, 21, 26),
+                text_button: Color::WHITE,
+                text_skipped: rgb8!(238, 239, 244),
+                text_selection: rgb8!(70, 60, 140),
+                positive: rgb8!(124, 108, 246),
+                negative: rgb8!(224, 92, 92),
+                disabled: rgb8!(110, 114, 128),
+                navigation: rgb8!(124, 108, 246),
+                added: rgb8!(60, 190, 128),
             },
         }
     }
@@ -188,10 +192,11 @@ impl button::Catalog for Theme {
         let active = button::Style {
             background: match class {
                 Button::Primary | Button::GameActionPrimary => Some(self.positive.into()),
-                Button::GameListEntryTitle => Some(self.success.into()),
-                Button::GameListEntryTitleFailed => Some(self.failure.into()),
-                Button::GameListEntryTitleDisabled => Some(self.skipped.into()),
-                Button::GameListEntryTitleUnscanned => None,
+                // A list item is text, not a filled control. See docs/design-system.md.
+                Button::GameListEntryTitle
+                | Button::GameListEntryTitleFailed
+                | Button::GameListEntryTitleDisabled
+                | Button::GameListEntryTitleUnscanned => None,
                 Button::Negative => Some(self.negative.into()),
                 Button::NavButtonActive => Some(self.navigation.alpha(0.9).into()),
                 Button::NavButtonInactive => None,
@@ -221,18 +226,14 @@ impl button::Catalog for Theme {
                 },
             },
             text_color: match class {
-                Button::GameListEntryTitleDisabled => self.text_skipped.alpha(0.8),
-                Button::GameListEntryTitleUnscanned => self.text.alpha(0.8),
+                Button::GameListEntryTitleDisabled => self.text.alpha(0.45),
+                Button::GameListEntryTitleUnscanned => self.text.alpha(0.6),
+                Button::GameListEntryTitle => self.text,
+                Button::GameListEntryTitleFailed => self.negative,
                 Button::NavButtonInactive | Button::Bare | Button::Secondary => self.text,
                 _ => self.text_button.alpha(0.8),
             },
-            shadow: Shadow {
-                offset: match class {
-                    Button::NavButtonActive | Button::NavButtonInactive | Button::Secondary => Vector::new(0.0, 0.0),
-                    _ => Vector::new(1.0, 1.0),
-                },
-                ..Default::default()
-            },
+            shadow: Shadow::default(),
             snap: true,
         };
 
@@ -241,7 +242,11 @@ impl button::Catalog for Theme {
             button::Status::Hovered => button::Style {
                 background: match class {
                     Button::NavButtonActive => Some(self.navigation.alpha(0.95).into()),
-                    Button::NavButtonInactive => Some(self.navigation.alpha(0.2).into()),
+                    Button::NavButtonInactive => Some(self.navigation.alpha(0.16).into()),
+                    Button::GameListEntryTitle
+                    | Button::GameListEntryTitleFailed
+                    | Button::GameListEntryTitleDisabled
+                    | Button::GameListEntryTitleUnscanned => Some(self.text.alpha(0.07).into()),
                     _ => active.background,
                 },
                 border: Border {
@@ -259,20 +264,16 @@ impl button::Catalog for Theme {
                     },
                 },
                 text_color: match class {
-                    Button::GameListEntryTitleDisabled => self.text_skipped,
-                    Button::GameListEntryTitleUnscanned | Button::NavButtonInactive => self.text,
+                    Button::GameListEntryTitleDisabled => self.text.alpha(0.6),
+                    Button::GameListEntryTitle
+                    | Button::GameListEntryTitleUnscanned
+                    | Button::NavButtonInactive
+                    | Button::Secondary => self.text,
+                    Button::GameListEntryTitleFailed => self.negative,
                     Button::Bare => self.text.alpha(0.9),
                     _ => self.text_button,
                 },
-                shadow: Shadow {
-                    offset: match class {
-                        Button::NavButtonActive | Button::NavButtonInactive | Button::Secondary => {
-                            Vector::new(0.0, 0.0)
-                        }
-                        _ => Vector::new(1.0, 2.0),
-                    },
-                    ..Default::default()
-                },
+                shadow: Shadow::default(),
                 snap: true,
             },
             button::Status::Pressed => button::Style {
@@ -334,18 +335,20 @@ impl container::Catalog for Theme {
         container::Style {
             background: Some(match class {
                 Container::Wrapper => Color::TRANSPARENT.into(),
-                Container::GameListEntry => self.field.alpha(0.15).into(),
+                Container::GameListEntry => self.field.alpha(0.55).into(),
                 Container::ModalBackground => self.field.alpha(0.75).into(),
                 Container::Notification => self.field.alpha(0.5).into(),
                 Container::Tooltip => self.field.into(),
                 Container::DisabledBackup => self.disabled.into(),
                 Container::BadgeActivated => self.negative.into(),
+                Container::Badge => self.text.alpha(0.1).into(),
                 _ => self.background.into(),
             }),
             border: Border {
                 color: match class {
                     Container::Wrapper => Color::TRANSPARENT,
-                    Container::GameListEntry | Container::Notification => self.field,
+                    Container::GameListEntry => Color::TRANSPARENT,
+                    Container::Notification => self.field,
                     Container::ChangeBadge { change, faded } => {
                         if *faded {
                             self.disabled
@@ -359,12 +362,12 @@ impl container::Catalog for Theme {
                         }
                     }
                     Container::BadgeActivated => self.negative,
+                    Container::Badge => Color::TRANSPARENT,
                     Container::ModalForeground | Container::BadgeFaded => self.disabled,
                     _ => self.text,
                 },
                 width: match class {
-                    Container::GameListEntry
-                    | Container::ModalForeground
+                    Container::ModalForeground
                     | Container::Badge
                     | Container::BadgeActivated
                     | Container::BadgeFaded

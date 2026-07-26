@@ -71,8 +71,32 @@ Use them like this, and nowhere else:
 Never use a colour to make something merely noticeable.
 
 ### Casing
-**Sentence case everywhere**, including navigation and buttons.
-`ALL CAPS` is reserved for badges, which are single words and act as labels, not prose.
+**Sentence case everywhere**, including navigation, buttons and badges.
+
+An earlier version of this document carved out an exception for badges.
+That was wrong: in practice a badge like `BENUTZERDEFINIERT` beside
+`DUPLIKATE` shouted louder than the game's own name. The exception is gone.
+
+### Surfaces and depth
+Depth comes from **layered surfaces**, never from drop shadows or hard outlines.
+
+* Page background is the darkest (or lightest) layer
+* A card or list row sits on a slightly lifted surface, with **no border**
+* Corner radius: `12` for cards and rows, `6` for badges, `10` baked into cover art
+* No drop shadows anywhere. A 1 px offset shadow is the clearest sign of a dated interface.
+
+### Colour, concretely
+One accent hue for the whole application — a violet — used for the active
+navigation tab and the single primary action. Blue and violet used to compete
+in the same window; that is what made it look assembled rather than designed.
+
+Status colours are muted rather than pure: green for added, a warm red for
+problems. Never full-saturation red or green.
+
+### Interactive text
+A list item is text, not a control. Titles have **no fill and no border**;
+they reveal a faint background on hover to show they can be clicked.
+Filling every title turned the list into a stack of input fields.
 
 ## Components
 

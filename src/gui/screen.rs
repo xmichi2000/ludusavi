@@ -39,22 +39,22 @@ fn template(content: Column) -> Element {
         .into()
 }
 
+/// A quiet summary line. This is context, not the headline,
+/// so it doesn't shout. See docs/design-system.md.
 fn make_status_row<'a>(status: &OperationStatus, duplication: Duplication) -> Row<'a> {
-    let size = 25;
-
     Row::new()
-        .padding([0, 20])
+        .padding([0, 16])
         .align_y(Alignment::Center)
-        .spacing(15)
-        .push(text(TRANSLATOR.processed_games(status)).size(size))
+        .spacing(8)
+        .push(text(TRANSLATOR.processed_games(status)).size(14))
         .push_if(status.changed_games.new > 0, || {
             Badge::new_entry_with_count(status.changed_games.new).view()
         })
         .push_if(status.changed_games.different > 0, || {
             Badge::changed_entry_with_count(status.changed_games.different).view()
         })
-        .push(text("|").size(size))
-        .push(text(TRANSLATOR.processed_bytes(status)).size(size))
+        .push(text("·").size(14))
+        .push(text(TRANSLATOR.processed_bytes(status)).size(14))
         .push_if(!duplication.resolved(), || {
             Badge::new(&TRANSLATOR.badge_duplicates()).view()
         })

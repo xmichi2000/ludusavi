@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, HashSet};
+﻿use std::collections::{BTreeSet, HashSet};
 
 use iced::{
     Alignment, Length, alignment::Horizontal as HorizontalAlignment, keyboard::Modifiers, padding, widget::tooltip,
@@ -171,12 +171,12 @@ impl GameListEntry {
                                 .view()
                         })
                         .push_if(customized, || {
-                            Badge::new(&TRANSLATOR.custom_label().to_uppercase())
+                            Badge::new(&TRANSLATOR.custom_label())
                                 .on_press(Message::ShowCustomGame { name: name.clone() })
                                 .view()
                         })
                         .push_if(display_name != name, || {
-                            Badge::new(&TRANSLATOR.alias_label().to_uppercase())
+                            Badge::new(&TRANSLATOR.alias_label())
                                 .on_press(Message::ShowCustomGame {
                                     name: display_name.to_string(),
                                 })
@@ -401,9 +401,9 @@ impl GameListEntry {
 
                     let label = backup.when_local().format("%m-%d %H:%M").to_string();
                     let label = if full {
-                        format!("â— {label}")
+                        format!("Ã¢â€”Â {label}")
                     } else {
-                        format!("â—‹ {label}")
+                        format!("Ã¢â€”â€¹ {label}")
                     };
 
                     parent.push(

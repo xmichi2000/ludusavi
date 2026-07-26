@@ -770,9 +770,9 @@ Overall:
             r#"
 foo [100.00 KiB]:
   - /file1
-  - [FAILED] /file2
+  - [Failed] /file2
     - test
-  - [FAILED] HKEY_CURRENT_USER/Key1
+  - [Failed] HKEY_CURRENT_USER/Key1
     - test
   - HKEY_CURRENT_USER/Key2
   - HKEY_CURRENT_USER/Key3
@@ -948,9 +948,9 @@ Overall:
         );
         assert_eq!(
             r#"
-foo [100.00 KiB] [DUPLICATES]:
-  - [DUPLICATED] /file1
-  - [DUPLICATED] HKEY_CURRENT_USER/Key1
+foo [100.00 KiB] [Duplicates]:
+  - [Duplicated] /file1
+  - [Duplicated] HKEY_CURRENT_USER/Key1
 
 Overall:
   Games: 1
