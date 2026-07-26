@@ -1,4 +1,7 @@
-## Unreleased
+## v0.32.0 (2026-07-26)
+
+Everything below is from this fork, on top of upstream v0.31.0.
+
 
 * Added:
   * You can now blacklist games to completely hide them from scans and the interface,

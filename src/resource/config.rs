@@ -141,6 +141,14 @@ pub struct Config {
     pub custom_games: Vec<CustomGame>,
     /// Games to completely hide from scans and the interface.
     pub blacklisted_games: BTreeSet<String>,
+    /// Any settings that this version doesn't know about.
+    ///
+    /// Keeping them means that using an older version doesn't throw away
+    /// settings that a newer version wrote, so you can switch between
+    /// versions without losing anything.
+    #[serde(flatten)]
+    #[schemars(skip)]
+    pub unknown: BTreeMap<String, serde_yaml::Value>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
@@ -2479,6 +2487,7 @@ mod tests {
                 },
                 watch: Default::default(),
                 covers: Default::default(),
+                unknown: Default::default(),
                 cloud: Cloud {
                     remote: Some(Remote::GoogleDrive {
                         id: "remote-id".to_string()
@@ -2731,6 +2740,7 @@ blacklistedGames:
                 },
                 watch: Default::default(),
                 covers: Default::default(),
+                unknown: Default::default(),
                 cloud: Cloud {
                     remote: Some(Remote::GoogleDrive {
                         id: "remote-id".to_string()
@@ -2841,6 +2851,28 @@ timeBased:
             },
             serde_yaml::from_str("timeBased: {}").unwrap(),
         );
+    }
+
+    #[test]
+    fn keeps_settings_from_other_versions() {
+        let original = r#"
+language: en-US
+somethingFromTheFuture:
+  nested: 1
+  list:
+    - a
+"#;
+
+        let config = serde_yaml::from_str::<Config>(original).unwrap();
+        assert_eq!(1, config.unknown.len());
+
+        // The setting must survive being written back out.
+        let written = serde_yaml::to_string(&config).unwrap();
+        assert!(written.contains("somethingFromTheFuture"));
+        assert!(written.contains("nested"));
+
+        let again = serde_yaml::from_str::<Config>(&written).unwrap();
+        assert_eq!(config.unknown, again.unknown);
     }
 
     #[test]

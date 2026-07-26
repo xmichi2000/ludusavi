@@ -1,3 +1,7 @@
+# This is a fork, so the window title says so alongside the version.
+[env]
+LUDUSAVI_VARIANT = "michi"
+
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-Ctarget-feature=+crt-static"]
 
