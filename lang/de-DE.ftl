@@ -342,3 +342,5 @@ field-steamgriddb-key = SteamGridDB-Schlüssel:
 field-igdb-client-id = IGDB-Client-ID:
 field-igdb-client-secret = IGDB-Client-Secret:
 button-delete-custom-game = Dieses eigene Spiel löschen
+label-showing-duplicates-of = Es werden nur Spiele gezeigt, die sich Spielstände mit { $game } teilen.
+button-show-all-games = Alle Spiele anzeigen

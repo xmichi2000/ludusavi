@@ -393,3 +393,6 @@ field-steamgriddb-key = SteamGridDB key:
 field-igdb-client-id = IGDB client ID:
 field-igdb-client-secret = IGDB client secret:
 button-delete-custom-game = Delete this custom game
+# Shown when the list is filtered to one game and the games that share its saves.
+label-showing-duplicates-of = Showing only games that share saves with { $game }.
+button-show-all-games = Show all games

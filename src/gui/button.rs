@@ -323,6 +323,15 @@ pub fn find_unknown_saves<'a>(scanning: bool) -> Element<'a> {
     )
 }
 
+/// The way out of the duplicate filter.
+pub fn show_all_games<'a>(scan_kind: crate::scan::ScanKind) -> Element<'a> {
+    template(
+        text(TRANSLATOR.show_all_games_button()),
+        Some(Message::FilterDuplicates { scan_kind, game: None }),
+        Some(style::Button::Secondary),
+    )
+}
+
 pub fn refresh_dashboard<'a>(refreshing: bool) -> Element<'a> {
     template(
         text(TRANSLATOR.refresh_button()).width(WIDTH),

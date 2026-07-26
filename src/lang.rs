@@ -614,6 +614,16 @@ impl Translator {
         translate("check-show-covers")
     }
 
+    pub fn showing_duplicates_of(&self, game: &str) -> String {
+        let mut args = FluentArgs::new();
+        args.set(GAME, game);
+        translate_args("label-showing-duplicates-of", &args)
+    }
+
+    pub fn show_all_games_button(&self) -> String {
+        translate("button-show-all-games")
+    }
+
     pub fn delete_custom_game_button(&self) -> String {
         translate("button-delete-custom-game")
     }

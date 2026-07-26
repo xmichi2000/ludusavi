@@ -491,7 +491,7 @@ impl GameList {
     ) -> Container {
         Container::new(
             Column::new()
-                .spacing(15)
+                .spacing(16)
                 .push({
                     self.search.view(
                         match scan_kind {
@@ -503,6 +503,20 @@ impl GameList {
                         self.manifests(manifest),
                     )
                 })
+                // Filtering by duplicates hides everything else, so say so
+                // and offer the way back, rather than expecting people to
+                // rediscover the badge they clicked.
+                .push(self.filter_duplicates_of.as_ref().map(|game| {
+                    Container::new(
+                        Row::new()
+                            .padding([8, 16])
+                            .spacing(16)
+                            .align_y(Alignment::Center)
+                            .push(text(TRANSLATOR.showing_duplicates_of(config.display_name(game))).size(14))
+                            .push(button::show_all_games(scan_kind)),
+                    )
+                    .class(style::Container::Notification)
+                }))
                 .push({
                     let visible = self
                         .entries

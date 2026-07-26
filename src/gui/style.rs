@@ -1,4 +1,4 @@
-﻿use iced::{
+use iced::{
     Background, Border, Color, Shadow, Vector,
     widget::{button, checkbox, container, pick_list, scrollable, text_editor, text_input},
 };
@@ -340,7 +340,7 @@ impl container::Catalog for Theme {
                 Container::Notification => self.field.alpha(0.5).into(),
                 Container::Tooltip => self.field.into(),
                 Container::DisabledBackup => self.disabled.into(),
-                Container::BadgeActivated => self.negative.into(),
+                Container::BadgeActivated => self.positive.into(),
                 Container::Badge => self.text.alpha(0.1).into(),
                 _ => self.background.into(),
             }),
@@ -361,7 +361,7 @@ impl container::Catalog for Theme {
                             }
                         }
                     }
-                    Container::BadgeActivated => self.negative,
+                    Container::BadgeActivated => self.positive,
                     Container::Badge => Color::TRANSPARENT,
                     Container::ModalForeground | Container::BadgeFaded => self.disabled,
                     _ => self.text,
