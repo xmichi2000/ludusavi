@@ -672,6 +672,10 @@ impl Translator {
         translate("cli-watch-nothing-running")
     }
 
+    pub fn cli_watch_unidentified(&self) -> String {
+        translate("cli-watch-unidentified")
+    }
+
     pub fn cli_watch_backing_up(&self, game: &str) -> String {
         let mut args = FluentArgs::new();
         args.set(GAME, game);

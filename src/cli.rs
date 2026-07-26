@@ -1028,6 +1028,17 @@ pub fn run(sub: Subcommand, no_manifest_update: bool, try_manifest_update: bool)
                         println!("{game}");
                     }
                 }
+
+                // These may be games that we can't identify by their folder name.
+                let unidentified = watcher.unidentified_programs();
+                if !unidentified.is_empty() {
+                    println!();
+                    println!("{}", TRANSLATOR.cli_watch_unidentified());
+                    for program in unidentified {
+                        println!("{}", program.render());
+                    }
+                }
+
                 return Ok(());
             }
 

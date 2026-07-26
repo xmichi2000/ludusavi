@@ -2,9 +2,26 @@ use std::collections::{HashMap, HashSet};
 
 use crate::{
     path::StrictPath,
-    resource::{config::Config, manifest::Manifest},
+    resource::{
+        config::Config,
+        manifest::{Manifest, Store},
+    },
     scan::{Launchers, TitleFinder},
 };
+
+/// Folders that sit alongside games in a root, but aren't games themselves.
+const NON_GAME_FOLDERS: &[&str] = &[
+    "Launcher",
+    "Epic Online Services",
+    "DirectXRedist",
+    "_CommonRedist",
+    "CommonRedist",
+    "Redist",
+    "DirectX",
+    "Steamworks Shared",
+    "SteamVR",
+    "Proton",
+];
 
 /// How long to keep the index of install directories before rebuilding it.
 const INDEX_LIFETIME: chrono::TimeDelta = chrono::TimeDelta::minutes(10);
@@ -65,6 +82,10 @@ fn folder_matches_title(title: &str, folder: &str) -> bool {
 pub struct GameIndex {
     /// Install directory and the game it belongs to.
     entries: Vec<(StrictPath, String)>,
+    /// Folders that hold games, used to notice programs we couldn't identify.
+    /// Stores whose folders are managed by the system aren't included,
+    /// since those are full of programs that aren't games.
+    roots: Vec<StrictPath>,
     built: Option<chrono::DateTime<chrono::Utc>>,
 }
 
@@ -105,8 +126,34 @@ impl GameIndex {
 
         Self {
             entries,
+            roots: roots
+                .iter()
+                .filter(|root| root.store() != Store::Microsoft)
+                .map(|root| root.games_path())
+                .collect(),
             built: Some(chrono::Utc::now()),
         }
+    }
+
+    /// The game folder that a program lives in, if it is inside one of your roots.
+    /// This is the folder directly within the root,
+    /// since that's what would become a custom game.
+    pub fn game_folder_of(&self, executable: &StrictPath) -> Option<StrictPath> {
+        let executable = executable.render();
+
+        for root in &self.roots {
+            let prefix = format!("{}/", root.render());
+            let Some(rest) = executable.strip_prefix(&prefix) else {
+                continue;
+            };
+            let Some(folder) = rest.split('/').next() else { continue };
+            if folder.is_empty() || rest == folder || NON_GAME_FOLDERS.iter().any(|x| x.eq_ignore_ascii_case(folder)) {
+                continue;
+            }
+            return Some(root.joined(folder));
+        }
+
+        None
     }
 
     pub fn is_stale(&self, now: &chrono::DateTime<chrono::Utc>) -> bool {
@@ -152,25 +199,45 @@ pub fn find_stopped(
 
 /// Which games are running right now, based on the executables of live processes.
 pub fn detect_running(index: &GameIndex) -> HashSet<String> {
-    if index.is_empty() {
-        return HashSet::new();
-    }
+    look_at_processes(index).0
+}
 
+/// Programs running from your game folders that don't belong to a known game.
+/// These are worth telling the user about,
+/// since they may be games that Ludusavi can't identify by folder name.
+pub fn detect_unidentified(index: &GameIndex) -> Vec<StrictPath> {
+    look_at_processes(index).1
+}
+
+fn look_at_processes(index: &GameIndex) -> (HashSet<String>, Vec<StrictPath>) {
     let mut system = sysinfo::System::new();
     system.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
 
     let mut running = HashSet::new();
+    let mut unidentified = vec![];
     for process in system.processes().values() {
         // Some processes are inaccessible, which is fine; we just skip them.
         let Some(executable) = process.exe() else { continue };
         let executable = StrictPath::from(executable);
 
-        if let Some(title) = index.find(&executable) {
-            log::debug!("watcher: [{title}] is running: {}", executable.render());
-            running.insert(title.to_string());
+        match index.find(&executable) {
+            Some(title) => {
+                log::debug!("watcher: [{title}] is running: {}", executable.render());
+                running.insert(title.to_string());
+            }
+            None => {
+                if let Some(folder) = index.game_folder_of(&executable)
+                    && !unidentified.contains(&folder)
+                {
+                    log::debug!("watcher: unidentified program in: {}", folder.render());
+                    unidentified.push(folder);
+                }
+            }
         }
     }
-    running
+
+    unidentified.sort_by_key(|x| x.render());
+    (running, unidentified)
 }
 
 /// Track which games are running, so that we can react when they stop.
@@ -183,6 +250,11 @@ pub struct Watcher {
 impl Watcher {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Programs from your game folders that we couldn't match to a game.
+    pub fn unidentified_programs(&self) -> Vec<StrictPath> {
+        detect_unidentified(&self.index)
     }
 
     pub fn running_games(&self) -> Vec<String> {
@@ -250,6 +322,7 @@ mod tests {
                 .iter()
                 .map(|(path, title)| (StrictPath::new(*path), title.to_string()))
                 .collect(),
+            roots: vec![],
             built: Some(chrono::Utc::now()),
         }
     }
@@ -310,6 +383,29 @@ mod tests {
         assert!(!folder_matches_title("Fate/Hollow Ataraxia Remastered", "Launcher"));
         assert!(!folder_matches_title("JOYDOOR", "Steamworks Shared"));
         assert!(!folder_matches_title("Some Game", "Some Other Game"));
+    }
+
+    #[test]
+    fn can_identify_the_game_folder_of_a_program() {
+        let index = GameIndex {
+            entries: vec![],
+            roots: vec![StrictPath::new("C:/Games")],
+            built: Some(chrono::Utc::now()),
+        };
+
+        assert_eq!(
+            Some(StrictPath::new("C:/Games/Some Game")),
+            index.game_folder_of(&StrictPath::new("C:/Games/Some Game/bin/game.exe"))
+        );
+        // Support programs alongside games are not games.
+        assert_eq!(
+            None,
+            index.game_folder_of(&StrictPath::new("C:/Games/Launcher/launcher.exe"))
+        );
+        // A program directly in the root has no game folder of its own.
+        assert_eq!(None, index.game_folder_of(&StrictPath::new("C:/Games/stray.exe")));
+        // Elsewhere on the computer.
+        assert_eq!(None, index.game_folder_of(&StrictPath::new("C:/Windows/explorer.exe")));
     }
 
     #[test]

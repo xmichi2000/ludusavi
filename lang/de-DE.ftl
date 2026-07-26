@@ -333,3 +333,4 @@ label-dashboard-health-missing = Noch nichts gesichert
 label-no-games-scanned-yet = Noch nichts durchsucht. Mit „Vorschau" siehst du, was gesichert würde.
 label-no-backups-yet = Noch keine Sicherungen vorhanden. Sichere zuerst einige Spiele.
 label-no-games-match-filter = Keine Spiele entsprechen dem Filter.
+cli-watch-unidentified = Diese Programme laufen aus deinen Spielordnern, konnten aber keinem Spiel zugeordnet werden. Falls eines davon ein Spiel ist, füge es als eigenes Spiel hinzu, damit Ludusavi es überwachen kann:

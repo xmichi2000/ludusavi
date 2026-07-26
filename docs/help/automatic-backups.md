@@ -48,6 +48,9 @@ ludusavi watch
 ```
 
 Use `ludusavi watch --once` to just report which games are running right now.
+It also lists folders in your roots that a running program came from
+when Ludusavi couldn't tell which game it belongs to,
+so you can add those as custom games if they are games.
 
 ## Starting automatically with Windows
 Enable the "watch for games when I log in" option on the "other" screen.

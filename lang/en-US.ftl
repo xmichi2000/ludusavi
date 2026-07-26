@@ -384,3 +384,4 @@ label-dashboard-health-missing = Nothing has been backed up yet
 label-no-games-scanned-yet = No games scanned yet. Use "preview" to see what would be backed up.
 label-no-backups-yet = No backups yet. Back up some games first.
 label-no-games-match-filter = No games match the current filter.
+cli-watch-unidentified = These programs run from your game folders, but no game matched them. If any of them is a game, add it as a custom game so that Ludusavi can watch it:
