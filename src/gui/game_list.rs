@@ -1,4 +1,4 @@
-﻿use std::collections::{BTreeSet, HashSet};
+use std::collections::{BTreeSet, HashSet};
 
 use iced::{
     Alignment, Length, alignment::Horizontal as HorizontalAlignment, keyboard::Modifiers, padding, widget::tooltip,
@@ -145,7 +145,7 @@ impl GameListEntry {
                                     style::Button::GameListEntryTitleFailed
                                 })
                                 .width(Length::Fill)
-                                .padding(2),
+                                .padding(4),
                         )
                         .push(match changes {
                             ScanChange::New => Some(Badge::new_entry().faded(!enabled).view()),
@@ -296,7 +296,7 @@ impl GameListEntry {
                                                 game: self.scan_info.game_name.clone(),
                                             })
                                             .class(style::Button::GameActionPrimary)
-                                            .padding(2);
+                                            .padding(4);
                                         Container::new(
                                             Tooltip::new(
                                                 button,
@@ -333,23 +333,28 @@ impl GameListEntry {
                                     }
                                 })
                                 .push(
-                                    Container::new(text({
-                                        let summed = self.scan_info.sum_bytes(self.backup_info.as_ref());
-                                        if summed == 0 && !self.scan_info.found_anything() {
-                                            "".to_string()
-                                        } else {
-                                            TRANSLATOR.adjusted_size(summed)
-                                        }
-                                    }))
-                                    .center_x(115),
+                                    // A fixed, right-aligned column, so the numbers line up
+                                    // no matter how many badges a row carries.
+                                    Container::new(
+                                        text({
+                                            let summed = self.scan_info.sum_bytes(self.backup_info.as_ref());
+                                            if summed == 0 && !self.scan_info.found_anything() {
+                                                "".to_string()
+                                            } else {
+                                                TRANSLATOR.adjusted_size(summed)
+                                            }
+                                        })
+                                        .size(14),
+                                    )
+                                    .align_right(96.0),
                                 ),
                         ),
                 )
                 .push(self.comment_editor.as_ref().map(|x| {
                     Row::new()
                         .align_y(Alignment::Center)
-                        .padding([0, 20])
-                        .spacing(20)
+                        .padding([0, 16])
+                        .spacing(16)
                         .push(text(TRANSLATOR.comment_label()))
                         .push(text_editor(
                             x,
@@ -393,7 +398,7 @@ impl GameListEntry {
             .available_backups
             .iter()
             .fold(
-                Row::new().padding([5, 20]).spacing(5).align_y(Alignment::Center),
+                Row::new().padding([4, 16]).spacing(8).align_y(Alignment::Center),
                 |parent, backup| {
                     let game = self.scan_info.game_name.clone();
                     let chosen = selected.as_deref() == Some(backup.name());
@@ -535,7 +540,7 @@ impl GameList {
                             Column::new()
                                 .width(Length::Fill)
                                 .padding(padding::bottom(5).left(15).right(15))
-                                .spacing(5),
+                                .spacing(4),
                             |parent, x| {
                                 parent.push(x.view(
                                     scan_kind,

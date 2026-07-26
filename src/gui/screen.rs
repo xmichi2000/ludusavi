@@ -31,12 +31,21 @@ use crate::{
 const RCLONE_URL: &str = "https://rclone.org/downloads";
 const RELEASE_URL: &str = "https://github.com/mtkennerly/ludusavi/releases";
 
+/// Content stops widening at some point, since a row stretched across a wide
+/// window puts its ends too far apart to read as one line.
+/// See docs/design-system.md.
+const CONTENT_WIDTH: f32 = 1100.0;
+
 fn template(content: Column) -> Element {
-    Container::new(content.spacing(15).align_x(Alignment::Center))
-        .height(Length::Fill)
-        .center_x(Length::Fill)
-        .padding(padding::all(5))
-        .into()
+    Container::new(
+        Container::new(content.spacing(16).align_x(Alignment::Center))
+            .max_width(CONTENT_WIDTH)
+            .width(Length::Fill),
+    )
+    .height(Length::Fill)
+    .center_x(Length::Fill)
+    .padding(padding::all(16))
+    .into()
 }
 
 /// A quiet summary line. This is context, not the headline,
