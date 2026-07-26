@@ -1,4 +1,4 @@
-﻿use std::{
+use std::{
     collections::{HashMap, HashSet},
     time::{Duration, Instant},
 };
@@ -691,6 +691,8 @@ impl App {
             }
             BackupPhase::Done => {
                 log::info!("completed backup");
+                // A scan can bring new games into the list, which may need covers.
+                let fetch_covers = Task::done(Message::FetchCovers);
                 let mut failed = false;
                 let preview = self.operation.preview();
                 let full = self.operation.full();
@@ -752,7 +754,7 @@ impl App {
                         }));
                 }
 
-                Task::none()
+                fetch_covers
             }
         }
     }
@@ -1024,6 +1026,7 @@ impl App {
             }
             RestorePhase::Done => {
                 log::info!("completed restore");
+                let fetch_covers = Task::done(Message::FetchCovers);
                 let mut failed = false;
                 let full = self.operation.full();
 
@@ -1060,7 +1063,7 @@ impl App {
                     return self.show_modal(Modal::Errors { errors });
                 }
 
-                Task::none()
+                fetch_covers
             }
         }
     }
@@ -2038,16 +2041,20 @@ impl App {
                     }
                     config::Event::CoversDownload(value) => {
                         self.config.covers.download = value;
+                        ludusavi::cover::forget_failures();
                     }
                     config::Event::SteamGridDbKey(value) => {
+                        ludusavi::cover::forget_failures();
                         self.text_histories.steamgriddb_key.push(&value);
                         self.config.covers.steamgriddb_key = (!value.trim().is_empty()).then_some(value);
                     }
                     config::Event::IgdbClientId(value) => {
+                        ludusavi::cover::forget_failures();
                         self.text_histories.igdb_client_id.push(&value);
                         self.config.covers.igdb_client_id = (!value.trim().is_empty()).then_some(value);
                     }
                     config::Event::IgdbClientSecret(value) => {
+                        ludusavi::cover::forget_failures();
                         self.text_histories.igdb_client_secret.push(&value);
                         self.config.covers.igdb_client_secret = (!value.trim().is_empty()).then_some(value);
                     }
@@ -2847,6 +2854,26 @@ impl App {
                         self.config.add_game_to_blacklist(&game);
                         self.text_histories.blacklisted_games.push(TextHistory::raw(&game));
                         self.save_config();
+                    }
+                    Task::none()
+                }
+                GameAction::DeleteCustomGame => {
+                    if let Some(index) = self.config.custom_games.iter().position(|x| x.name == game) {
+                        self.config.custom_games.remove(index);
+                        if index < self.text_histories.custom_games.len() {
+                            self.text_histories.custom_games.remove(index);
+                        }
+                        self.save_config();
+
+                        // It should also leave the list right away.
+                        let duplicates = self.backup_screen.duplicate_detector.remove_game(&game);
+                        self.backup_screen.log.remove_game(
+                            &game,
+                            &self.backup_screen.duplicate_detector,
+                            &duplicates,
+                            &self.config,
+                            ScanKind::Backup,
+                        );
                     }
                     Task::none()
                 }

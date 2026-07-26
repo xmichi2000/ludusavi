@@ -110,6 +110,23 @@ pub fn is_resolved(game: &str) -> bool {
     cached_path(game).is_file() || missing_marker(game).is_file()
 }
 
+/// Forget which games we failed to find a cover for.
+///
+/// Worth doing whenever the sources change, such as after entering a key,
+/// since the games that came up empty before may well succeed now.
+pub fn forget_failures() {
+    let Ok(entries) = app_dir().joined("covers").read_dir() else {
+        return;
+    };
+
+    for entry in entries.filter_map(|x| x.ok()) {
+        let path = StrictPath::from(entry.path());
+        if path.render().ends_with(".missing") {
+            let _ = path.remove();
+        }
+    }
+}
+
 /// Take a cover that's already on this computer into our own cache,
 /// cropped to portrait like everything else, so the list stays consistent.
 pub fn adopt_local(game: &str, source: &StrictPath) -> Option<StrictPath> {

@@ -392,3 +392,4 @@ label-cover-databases = Optional: keys for cover databases, which cover games th
 field-steamgriddb-key = SteamGridDB key:
 field-igdb-client-id = IGDB client ID:
 field-igdb-client-secret = IGDB client secret:
+button-delete-custom-game = Delete this custom game

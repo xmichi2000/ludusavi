@@ -1,4 +1,4 @@
-﻿use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 use iced::{Length, widget::text_input};
 
@@ -841,15 +841,21 @@ impl From<Screen> for ScrollSubject {
 pub enum GameAction {
     Customize,
     PreviewBackup,
-    Backup { confirm: bool },
+    Backup {
+        confirm: bool,
+    },
     PreviewRestore,
-    Restore { confirm: bool },
+    Restore {
+        confirm: bool,
+    },
     Wiki,
     Comment,
     Lock,
     Unlock,
     MakeAlias,
     Blacklist,
+    /// Remove a game that you added yourself.
+    DeleteCustomGame,
 }
 
 impl GameAction {
@@ -878,6 +884,11 @@ impl GameAction {
 
         if scan_kind.is_backup() && !customized {
             options.push(Self::Customize);
+        }
+
+        // Only games you added yourself can be removed here.
+        if customized && invented && !operating {
+            options.push(Self::DeleteCustomGame);
         }
 
         options.push(Self::MakeAlias);
@@ -920,6 +931,7 @@ impl GameAction {
             GameAction::Unlock => Icon::LockOpen,
             GameAction::MakeAlias => Icon::Edit,
             GameAction::Blacklist => Icon::VisibilityOff,
+            GameAction::DeleteCustomGame => Icon::Delete,
         }
     }
 }
@@ -949,6 +961,7 @@ impl ToString for GameAction {
             Self::Unlock => TRANSLATOR.unlock_button(),
             Self::MakeAlias => TRANSLATOR.alias_label(),
             Self::Blacklist => TRANSLATOR.blacklist_button(),
+            Self::DeleteCustomGame => TRANSLATOR.delete_custom_game_button(),
         }
     }
 }

@@ -614,6 +614,10 @@ impl Translator {
         translate("check-show-covers")
     }
 
+    pub fn delete_custom_game_button(&self) -> String {
+        translate("button-delete-custom-game")
+    }
+
     pub fn download_covers(&self) -> String {
         translate("check-download-covers")
     }
