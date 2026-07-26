@@ -326,6 +326,8 @@ cli-validate-faulty =
     }
 label-unknown-saves-scanning = Suche nach unbekannten Spielstand-Ordnern...
 field-automatic-backups = Automatische Sicherungen
+button-move-up = Nach oben
+button-move-down = Nach unten
 dashboard-cloud-health = Verbindung
 dashboard-cloud-checking = Wird geprüft...
 dashboard-cloud-reachable = Funktioniert

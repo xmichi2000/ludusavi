@@ -611,6 +611,14 @@ impl Translator {
         translate("label-locations-differ")
     }
 
+    pub fn move_up_button(&self) -> String {
+        translate("button-move-up")
+    }
+
+    pub fn move_down_button(&self) -> String {
+        translate("button-move-down")
+    }
+
     pub fn dashboard_cloud_health_label(&self) -> String {
         translate("dashboard-cloud-health")
     }
@@ -1007,10 +1015,6 @@ impl Translator {
 
     pub fn preview_button(&self) -> String {
         translate("button-preview")
-    }
-
-    pub fn preview_button_in_custom_mode(&self) -> String {
-        format!("{} ({})", self.preview_button(), self.backup_button().to_lowercase())
     }
 
     pub fn restore_button(&self) -> String {

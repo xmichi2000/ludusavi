@@ -377,6 +377,8 @@ cli-validate-faulty =
     }
 label-unknown-saves-scanning = Looking for unknown save folders...
 field-automatic-backups = Automatic backups
+button-move-up = Move up
+button-move-down = Move down
 dashboard-cloud-health = Connection
 dashboard-cloud-checking = Checking...
 dashboard-cloud-reachable = Working

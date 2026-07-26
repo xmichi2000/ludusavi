@@ -1,20 +1,24 @@
 use iced::{
     Alignment, Length, keyboard, padding,
-    widget::{Space, space, tooltip},
+    widget::{Space, space},
 };
 
 use crate::{
     gui::{
         badge::Badge,
         button,
-        common::{BackupPhase, BrowseFileSubject, BrowseSubject, GameSelection, Message, ScrollSubject, UndoSubject},
+        common::{
+            BackupPhase, BrowseFileSubject, BrowseSubject, CustomGameAction, GameSelection, Message, ScrollSubject,
+            UndoSubject,
+        },
         icon::Icon,
         search::CustomGamesFilter,
         shortcuts::TextHistories,
         style,
-        widget::{Column, Container, IcedParentExt, Row, Tooltip, checkbox, pick_list, text},
+        widget::{Column, Container, IcedParentExt, Row, checkbox, pick_list, text},
     },
     lang::TRANSLATOR,
+    prelude::EditAction,
     resource::{
         cache::Cache,
         config::{self, Config, CustomGameKind, Integration, RedirectKind, SecondaryManifestConfigKind},
@@ -276,6 +280,7 @@ pub fn custom_games<'a>(
     histories: &TextHistories,
     modifiers: &keyboard::Modifiers,
     filter: &CustomGamesFilter,
+    menu_for: Option<usize>,
 ) -> Container<'a> {
     if config.custom_games.is_empty() {
         return Container::new(Space::new());
@@ -303,33 +308,13 @@ pub fn custom_games<'a>(
                             },
                         ))
                         .push(
-                            Row::new()
-                                .width(110)
-                                .spacing(20)
-                                .align_y(Alignment::Center)
-                                .push(
-                                    checkbox(
-                                        "",
-                                        config.is_custom_game_enabled(i),
-                                        Message::config(move |enabled| config::Event::CustomGameEnabled {
-                                            index: i,
-                                            enabled,
-                                        }),
-                                    )
-                                    .spacing(0)
-                                    .class(style::Checkbox),
-                                )
-                                .push(button::move_up_maybe(
-                                    Message::config(config::Event::CustomGame),
-                                    i,
-                                    !filter.enabled,
-                                ))
-                                .push(button::move_down_maybe(
-                                    Message::config(config::Event::CustomGame),
-                                    i,
-                                    config.custom_games.len(),
-                                    !filter.enabled,
-                                )),
+                            checkbox(
+                                "",
+                                config.is_custom_game_enabled(i),
+                                Message::config(move |enabled| config::Event::CustomGameEnabled { index: i, enabled }),
+                            )
+                            .spacing(0)
+                            .class(style::Checkbox),
                         )
                         .push(histories.input(UndoSubject::CustomGameName(i)))
                         .push(if manifest.0.get(&x.name).is_some_and(|game| game.is_from_manifest()) {
@@ -353,26 +338,36 @@ pub fn custom_games<'a>(
                             .class(style::PickList::Primary)
                             .width(100),
                         )
-                        .push(
-                            Tooltip::new(
-                                button::refresh_custom_game(
-                                    Message::Backup(BackupPhase::Start {
-                                        games: Some(GameSelection::single(config.custom_games[i].name.clone())),
-                                        preview: true,
-                                        jump: true,
-                                        repair: false,
-                                        background: false,
-                                    }),
-                                    operating,
-                                    config.is_custom_game_individually_scannable(i),
-                                ),
-                                text(TRANSLATOR.preview_button_in_custom_mode()).size(16),
-                                tooltip::Position::Top,
-                            )
-                            .gap(5)
-                            .class(style::Container::Tooltip),
-                        )
-                        .push(button::delete(Message::config(config::Event::CustomGame), i)),
+                        // Everything else this row can do lives in one menu,
+                        // so the row itself stays readable.
+                        .push({
+                            let name = config.custom_games[i].name.clone();
+                            let total = config.custom_games.len();
+                            let options = CustomGameAction::options(
+                                !operating && config.is_custom_game_individually_scannable(i),
+                                !filter.enabled,
+                                i == 0,
+                                i + 1 == total,
+                            );
+
+                            crate::gui::popup_menu::PopupMenu::new(options, move |action| match action {
+                                CustomGameAction::PreviewScan => Message::Backup(BackupPhase::Start {
+                                    games: Some(GameSelection::single(name.clone())),
+                                    preview: true,
+                                    jump: true,
+                                    repair: false,
+                                    background: false,
+                                }),
+                                CustomGameAction::MoveUp => config::Event::CustomGame(EditAction::move_up(i)).into(),
+                                CustomGameAction::MoveDown => {
+                                    config::Event::CustomGame(EditAction::move_down(i)).into()
+                                }
+                                CustomGameAction::Delete => config::Event::CustomGame(EditAction::Remove(i)).into(),
+                            })
+                            .width(49)
+                            .requested_open(menu_for == Some(i))
+                            .class(style::PickList::Popup)
+                        }),
                 );
 
                 if x.expanded {
@@ -598,9 +593,12 @@ pub fn custom_games<'a>(
                         });
                 }
 
-                Container::new(content)
-                    .id(config.custom_games[i].name.clone())
-                    .class(style::Container::GameListEntry)
+                // A right click anywhere on the row opens the same menu as the button.
+                Container::new(
+                    iced::widget::mouse_area(content).on_right_press(Message::OpenCustomGameMenu { index: Some(i) }),
+                )
+                .id(config.custom_games[i].name.clone())
+                .class(style::Container::GameListEntry)
             })
         },
     );

@@ -151,7 +151,13 @@ Before a UI change is done, confirm:
 ## Where this doesn't reach yet
 
 Being honest about scope: the rules are applied to the navigation,
-the game list, the dashboard and the settings sections.
-The custom-games editor rows still carry too many controls,
-and the modals have not been revisited.
+the game list, the dashboard, the settings sections and the
+custom-games rows. The modals have not been revisited, and the
+expanded part of a custom-games row still stacks its own controls.
 Those are the next passes, not exceptions to the rules.
+
+## Layout width
+
+A window wider than **1400** lays the dashboard panels and the settings
+cards out in two columns. Below that they stack. Nothing else changes:
+the same cards, the same order, read top to bottom in either case.

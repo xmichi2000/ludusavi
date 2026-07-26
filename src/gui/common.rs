@@ -221,6 +221,10 @@ pub enum Message {
     OpenGameMenu {
         game: Option<String>,
     },
+    /// The same, for a row in the custom games list.
+    OpenCustomGameMenu {
+        index: Option<usize>,
+    },
     SetCoverFromUrl {
         game: String,
         url: String,
@@ -852,6 +856,47 @@ impl From<Screen> for ScrollSubject {
             Screen::CustomGames => Self::CustomGames,
             // The dashboard is a short page, so it reuses the "other" scroll position.
             Screen::Dashboard | Screen::Other => Self::Other,
+        }
+    }
+}
+
+/// What the overflow menu on a row in the custom games list offers.
+/// A row shows a handful of controls and hides the rest here,
+/// per docs/design-system.md.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CustomGameAction {
+    PreviewScan,
+    MoveUp,
+    MoveDown,
+    Delete,
+}
+
+impl CustomGameAction {
+    pub fn options(scannable: bool, sortable: bool, first: bool, last: bool) -> Vec<Self> {
+        let mut options = vec![];
+
+        if scannable {
+            options.push(Self::PreviewScan);
+        }
+        if sortable && !first {
+            options.push(Self::MoveUp);
+        }
+        if sortable && !last {
+            options.push(Self::MoveDown);
+        }
+        options.push(Self::Delete);
+
+        options
+    }
+}
+
+impl ToString for CustomGameAction {
+    fn to_string(&self) -> String {
+        match self {
+            Self::PreviewScan => TRANSLATOR.preview_button(),
+            Self::MoveUp => TRANSLATOR.move_up_button(),
+            Self::MoveDown => TRANSLATOR.move_down_button(),
+            Self::Delete => TRANSLATOR.delete_custom_game_button(),
         }
     }
 }

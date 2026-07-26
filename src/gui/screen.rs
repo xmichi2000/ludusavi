@@ -528,6 +528,7 @@ impl CustomGames {
         operating: bool,
         histories: &'a TextHistories,
         modifiers: &keyboard::Modifiers,
+        menu_for: Option<usize>,
     ) -> Element<'a> {
         let content = Column::new()
             .push(
@@ -561,6 +562,7 @@ impl CustomGames {
                 histories,
                 modifiers,
                 &self.filter,
+                menu_for,
             ));
 
         template(content)

@@ -104,6 +104,8 @@ pub struct App {
     fetching_covers: bool,
     /// The game whose menu a right click asked for.
     game_menu_for: Option<String>,
+    /// The same, for a row in the custom games list.
+    custom_game_menu_for: Option<usize>,
     operation_should_cancel: std::sync::Arc<std::sync::atomic::AtomicBool>,
     operation_steps: Vec<OperationStep>,
     operation_steps_active: usize,
@@ -3222,6 +3224,10 @@ impl App {
                 self.game_menu_for = game;
                 Task::none()
             }
+            Message::OpenCustomGameMenu { index } => {
+                self.custom_game_menu_for = index;
+                Task::none()
+            }
             Message::SetCoverFromUrl { game, url } => {
                 let config = self.config.clone();
                 Task::perform(
@@ -3513,6 +3519,7 @@ impl App {
                     !self.operation.idle(),
                     &self.text_histories,
                     &self.modifiers,
+                    self.custom_game_menu_for,
                 ),
                 Screen::Dashboard => self.dashboard_screen.view(
                     &self.config,

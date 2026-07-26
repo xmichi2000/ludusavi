@@ -117,14 +117,6 @@ pub fn remove_nested<'a>(action: impl Fn(usize, EditAction) -> Message, parent: 
     )
 }
 
-pub fn delete<'a>(action: impl Fn(EditAction) -> Message, index: usize) -> Element<'a> {
-    template(
-        Icon::Delete.text(),
-        Some(action(EditAction::Remove(index))),
-        Some(style::Button::Negative),
-    )
-}
-
 pub fn hide<'a>(action: Message) -> Element<'a> {
     template(Icon::VisibilityOff.text_small(), Some(action), None)
 }
@@ -189,10 +181,6 @@ pub fn refresh<'a>(action: Message, ongoing: bool) -> Element<'a> {
     template(Icon::Refresh.text(), (!ongoing).then_some(action), None)
 }
 
-pub fn refresh_custom_game<'a>(action: Message, ongoing: bool, enabled: bool) -> Element<'a> {
-    template(Icon::Refresh.text(), (!ongoing && enabled).then_some(action), None)
-}
-
 pub fn search<'a>(action: Message) -> Element<'a> {
     template(Icon::Search.text(), Some(action), None)
 }
@@ -201,14 +189,6 @@ pub fn move_up<'a>(action: impl Fn(EditAction) -> Message, index: usize) -> Elem
     template(
         Icon::ArrowUpward.text_small(),
         (index > 0).then(|| action(EditAction::move_up(index))),
-        None,
-    )
-}
-
-pub fn move_up_maybe<'a>(action: impl Fn(EditAction) -> Message, index: usize, enabled: bool) -> Element<'a> {
-    template(
-        Icon::ArrowUpward.text_small(),
-        (enabled && index > 0).then(|| action(EditAction::move_up(index))),
         None,
     )
 }
@@ -225,19 +205,6 @@ pub fn move_down<'a>(action: impl Fn(EditAction) -> Message, index: usize, max: 
     template(
         Icon::ArrowDownward.text_small(),
         (index < max - 1).then(|| action(EditAction::move_down(index))),
-        None,
-    )
-}
-
-pub fn move_down_maybe<'a>(
-    action: impl Fn(EditAction) -> Message,
-    index: usize,
-    max: usize,
-    enabled: bool,
-) -> Element<'a> {
-    template(
-        Icon::ArrowDownward.text_small(),
-        (enabled && index < max - 1).then(|| action(EditAction::move_down(index))),
         None,
     )
 }
