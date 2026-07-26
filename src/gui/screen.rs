@@ -823,6 +823,36 @@ pub fn other<'a>(
                             .class(style::Container::GameListEntry),
                         ),
                 )
+                // Both paths in one place, since they are easy to mix up.
+                .push(
+                    Column::new().spacing(5).push(text(TRANSLATOR.locations_field())).push(
+                        Container::new(
+                            Column::new()
+                                .padding(5)
+                                .spacing(10)
+                                .push(
+                                    Row::new()
+                                        .spacing(10)
+                                        .align_y(Alignment::Center)
+                                        .push(Container::new(text(TRANSLATOR.backup_target_label())).align_right(120))
+                                        .push(text(config.backup.path.render()).size(14))
+                                        .push(button::choose_folder(BrowseSubject::BackupTarget, modifiers)),
+                                )
+                                .push(
+                                    Row::new()
+                                        .spacing(10)
+                                        .align_y(Alignment::Center)
+                                        .push(Container::new(text(TRANSLATOR.restore_source_label())).align_right(120))
+                                        .push(text(config.restore.path.render()).size(14))
+                                        .push(button::choose_folder(BrowseSubject::RestoreSource, modifiers)),
+                                )
+                                .push_if(config.backup.path != config.restore.path, || {
+                                    text(TRANSLATOR.locations_differ_note()).size(13)
+                                }),
+                        )
+                        .class(style::Container::GameListEntry),
+                    ),
+                )
                 .push(
                     Column::new().spacing(5).push(text(TRANSLATOR.interface_field())).push(
                         Container::new(
@@ -831,9 +861,54 @@ pub fn other<'a>(
                                 .spacing(10)
                                 .push(checkbox(
                                     TRANSLATOR.show_covers(),
-                                    config.scan.show_covers,
-                                    Message::config(config::Event::ShowCovers),
+                                    config.covers.show,
+                                    Message::config(config::Event::CoversShow),
                                 ))
+                                .push_if(config.covers.show, || {
+                                    Column::new()
+                                        .spacing(10)
+                                        .padding(padding::left(35))
+                                        .push(checkbox(
+                                            TRANSLATOR.download_covers(),
+                                            config.covers.download,
+                                            Message::config(config::Event::CoversDownload),
+                                        ))
+                                        .push_if(config.covers.download, || {
+                                            Column::new()
+                                                .spacing(5)
+                                                .push(text(TRANSLATOR.cover_databases_note()).size(13))
+                                                .push(
+                                                    Row::new()
+                                                        .spacing(10)
+                                                        .align_y(Alignment::Center)
+                                                        .push(
+                                                            Container::new(text(TRANSLATOR.steamgriddb_key_label()))
+                                                                .align_right(160),
+                                                        )
+                                                        .push(histories.input(UndoSubject::SteamGridDbKey)),
+                                                )
+                                                .push(
+                                                    Row::new()
+                                                        .spacing(10)
+                                                        .align_y(Alignment::Center)
+                                                        .push(
+                                                            Container::new(text(TRANSLATOR.igdb_client_id_label()))
+                                                                .align_right(160),
+                                                        )
+                                                        .push(histories.input(UndoSubject::IgdbClientId)),
+                                                )
+                                                .push(
+                                                    Row::new()
+                                                        .spacing(10)
+                                                        .align_y(Alignment::Center)
+                                                        .push(
+                                                            Container::new(text(TRANSLATOR.igdb_client_secret_label()))
+                                                                .align_right(160),
+                                                        )
+                                                        .push(histories.input(UndoSubject::IgdbClientSecret)),
+                                                )
+                                        })
+                                })
                                 .push(checkbox(
                                     TRANSLATOR.show_disabled_games(),
                                     config.scan.show_deselected_games,

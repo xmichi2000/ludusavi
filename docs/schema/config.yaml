@@ -127,6 +127,13 @@ properties:
     default: light
     allOf:
       - $ref: "#/definitions/Theme"
+  covers:
+    default:
+      alwaysCheckDatabases: false
+      download: true
+      show: true
+    allOf:
+      - $ref: "#/definitions/Covers"
   watch:
     default:
       enabled: false
@@ -1039,6 +1046,37 @@ definitions:
             type: object
             additionalProperties:
               type: boolean
+  Covers:
+    description: Settings for cover art in the game list.
+    type: object
+    properties:
+      alwaysCheckDatabases:
+        description: "Ask SteamGridDB and IGDB even when a Steam or launcher cover was found. They often have nicer portrait covers, but this makes each lookup slower."
+        default: false
+        type: boolean
+      download:
+        description: "Download missing covers from Steam and from your launchers' artwork. Covers are saved locally, so each game is only looked up once."
+        default: true
+        type: boolean
+      igdbClientId:
+        description: "Twitch client ID for IGDB, which has covers for most games."
+        type:
+          - string
+          - "null"
+      igdbClientSecret:
+        description: Twitch client secret for IGDB.
+        type:
+          - string
+          - "null"
+      show:
+        description: Show cover art next to each game.
+        default: true
+        type: boolean
+      steamgriddbKey:
+        description: "Key for SteamGridDB, which has covers for games that Steam doesn't list. You can get one for free at steamgriddb.com."
+        type:
+          - string
+          - "null"
   Watch:
     description: Settings for automatic backups when a game closes.
     type: object

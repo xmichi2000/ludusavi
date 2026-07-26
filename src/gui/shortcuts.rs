@@ -1,4 +1,4 @@
-// Iced has built-in support for some keyboard shortcuts. This module provides
+﻿// Iced has built-in support for some keyboard shortcuts. This module provides
 // support for implementing other shortcuts until Iced provides its own support.
 
 use std::collections::{HashMap, VecDeque};
@@ -240,6 +240,9 @@ pub struct TextHistories {
     pub rclone_arguments: TextHistory,
     pub cloud_remote_id: TextHistory,
     pub cloud_path: TextHistory,
+    pub steamgriddb_key: TextHistory,
+    pub igdb_client_id: TextHistory,
+    pub igdb_client_secret: TextHistory,
     pub modal: ModalHistory,
     pub backup_comments: HashMap<String, TextHistory>,
 }
@@ -254,6 +257,9 @@ impl TextHistories {
             rclone_executable: TextHistory::path(&config.apps.rclone.path),
             rclone_arguments: TextHistory::raw(&config.apps.rclone.arguments),
             cloud_path: TextHistory::raw(&config.cloud.path),
+            steamgriddb_key: TextHistory::raw(config.covers.steamgriddb_key.as_deref().unwrap_or_default()),
+            igdb_client_id: TextHistory::raw(config.covers.igdb_client_id.as_deref().unwrap_or_default()),
+            igdb_client_secret: TextHistory::raw(config.covers.igdb_client_secret.as_deref().unwrap_or_default()),
             ..Default::default()
         };
 
@@ -385,6 +391,9 @@ impl TextHistories {
             UndoSubject::RcloneArguments => self.rclone_arguments.current(),
             UndoSubject::CloudRemoteId => self.cloud_remote_id.current(),
             UndoSubject::CloudPath => self.cloud_path.current(),
+            UndoSubject::SteamGridDbKey => self.steamgriddb_key.current(),
+            UndoSubject::IgdbClientId => self.igdb_client_id.current(),
+            UndoSubject::IgdbClientSecret => self.igdb_client_secret.current(),
             UndoSubject::ModalField(field) => match field {
                 ModalInputKind::Url => self.modal.url.current(),
                 ModalInputKind::Host => self.modal.host.current(),
@@ -456,6 +465,9 @@ impl TextHistories {
             UndoSubject::RcloneArguments => Box::new(Message::config(config::Event::RcloneArguments)),
             UndoSubject::CloudRemoteId => Box::new(Message::config(config::Event::CloudRemoteId)),
             UndoSubject::CloudPath => Box::new(Message::config(config::Event::CloudPath)),
+            UndoSubject::SteamGridDbKey => Box::new(Message::config(config::Event::SteamGridDbKey)),
+            UndoSubject::IgdbClientId => Box::new(Message::config(config::Event::IgdbClientId)),
+            UndoSubject::IgdbClientSecret => Box::new(Message::config(config::Event::IgdbClientSecret)),
             UndoSubject::ModalField(field) => Box::new(move |value| {
                 Message::EditedModalField(match field {
                     ModalInputKind::Url => ModalField::Url(value),
@@ -498,6 +510,7 @@ impl TextHistories {
             UndoSubject::RcloneArguments => TRANSLATOR.arguments_label(),
             UndoSubject::CloudRemoteId => "".to_string(),
             UndoSubject::CloudPath => "".to_string(),
+            UndoSubject::SteamGridDbKey | UndoSubject::IgdbClientId | UndoSubject::IgdbClientSecret => "".to_string(),
             UndoSubject::ModalField(_) => "".to_string(),
             UndoSubject::BackupComment(_) => TRANSLATOR.comment_label(),
         };
@@ -527,6 +540,9 @@ impl TextHistories {
             | UndoSubject::RcloneArguments
             | UndoSubject::CloudRemoteId
             | UndoSubject::CloudPath
+            | UndoSubject::SteamGridDbKey
+            | UndoSubject::IgdbClientId
+            | UndoSubject::IgdbClientSecret
             | UndoSubject::ModalField(_)
             | UndoSubject::BackupComment(_) => None,
         };

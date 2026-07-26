@@ -594,6 +594,14 @@ impl Translator {
         translate("field-automatic-backups")
     }
 
+    pub fn locations_field(&self) -> String {
+        translate("field-locations")
+    }
+
+    pub fn locations_differ_note(&self) -> String {
+        translate("label-locations-differ")
+    }
+
     pub fn interface_field(&self) -> String {
         translate("field-interface")
     }
@@ -604,6 +612,26 @@ impl Translator {
 
     pub fn show_covers(&self) -> String {
         translate("check-show-covers")
+    }
+
+    pub fn download_covers(&self) -> String {
+        translate("check-download-covers")
+    }
+
+    pub fn cover_databases_note(&self) -> String {
+        translate("label-cover-databases")
+    }
+
+    pub fn steamgriddb_key_label(&self) -> String {
+        translate("field-steamgriddb-key")
+    }
+
+    pub fn igdb_client_id_label(&self) -> String {
+        translate("field-igdb-client-id")
+    }
+
+    pub fn igdb_client_secret_label(&self) -> String {
+        translate("field-igdb-client-secret")
     }
 
     pub fn find_unknown_saves_on_startup(&self) -> String {

@@ -8,6 +8,7 @@
 pub mod api;
 pub mod autostart;
 pub mod cloud;
+pub mod cover;
 pub mod lang;
 pub mod metadata;
 pub mod path;

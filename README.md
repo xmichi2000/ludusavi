@@ -86,6 +86,7 @@ Detailed help documentation is available for several topics.
 * [Backup validation](/docs/help/backup-validation.md)
 * [Blacklist](/docs/help/blacklist.md)
 * [Cloud backup](/docs/help/cloud-backup.md)
+* [Cover art](/docs/help/covers.md)
 * [Custom games](/docs/help/custom-games.md)
 * [Duplicates](/docs/help/duplicates.md)
 * [Emulator saves](/docs/help/emulator-saves.md)

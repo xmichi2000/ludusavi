@@ -1,4 +1,4 @@
-use std::{
+﻿use std::{
     collections::{HashMap, HashSet},
     time::{Duration, Instant},
 };
@@ -100,6 +100,8 @@ pub struct App {
     restore_screen: screen::Restore,
     custom_games_screen: screen::CustomGames,
     dashboard_screen: screen::Dashboard,
+    /// Whether a batch of covers is being looked up right now.
+    fetching_covers: bool,
     operation_should_cancel: std::sync::Arc<std::sync::atomic::AtomicBool>,
     operation_steps: Vec<OperationStep>,
     operation_steps_active: usize,
@@ -1339,6 +1341,21 @@ impl App {
         Task::none()
     }
 
+    /// Games that the user could currently see in a list.
+    fn games_in_view(&self) -> Vec<String> {
+        let mut games: Vec<_> = self
+            .backup_screen
+            .log
+            .entries
+            .iter()
+            .chain(self.restore_screen.log.entries.iter())
+            .map(|entry| entry.scan_info.game_name.clone())
+            .collect();
+        games.sort();
+        games.dedup();
+        games
+    }
+
     fn switch_screen(&mut self, screen: Screen) -> Task<Message> {
         self.screen = screen;
 
@@ -2016,8 +2033,23 @@ impl App {
                     config::Event::DiffRetention(value) => {
                         self.config.backup.retention.differential = value;
                     }
-                    config::Event::ShowCovers(value) => {
-                        self.config.scan.show_covers = value;
+                    config::Event::CoversShow(value) => {
+                        self.config.covers.show = value;
+                    }
+                    config::Event::CoversDownload(value) => {
+                        self.config.covers.download = value;
+                    }
+                    config::Event::SteamGridDbKey(value) => {
+                        self.text_histories.steamgriddb_key.push(&value);
+                        self.config.covers.steamgriddb_key = (!value.trim().is_empty()).then_some(value);
+                    }
+                    config::Event::IgdbClientId(value) => {
+                        self.text_histories.igdb_client_id.push(&value);
+                        self.config.covers.igdb_client_id = (!value.trim().is_empty()).then_some(value);
+                    }
+                    config::Event::IgdbClientSecret(value) => {
+                        self.text_histories.igdb_client_secret.push(&value);
+                        self.config.covers.igdb_client_secret = (!value.trim().is_empty()).then_some(value);
                     }
                     config::Event::FindUnknownSavesOnStartup(value) => {
                         self.config.scan.find_unknown_saves_on_startup = value;
@@ -2211,6 +2243,8 @@ impl App {
                 if self.config.scan.find_unknown_saves_on_startup && self.custom_games_screen.unknown_saves.is_none() {
                     tasks.push(Task::done(Message::FindUnknownSaves));
                 }
+                // The manifest is what tells us each game's Steam ID, so covers wait for it too.
+                tasks.push(Task::done(Message::FetchCovers));
 
                 Task::batch(tasks)
             }
@@ -2711,6 +2745,21 @@ impl App {
                     UndoSubject::CloudPath => {
                         shortcut.apply_to_string_field(&mut self.config.cloud.path, &mut self.text_histories.cloud_path)
                     }
+                    UndoSubject::SteamGridDbKey => {
+                        self.text_histories.steamgriddb_key.apply(shortcut);
+                        let value = self.text_histories.steamgriddb_key.current();
+                        self.config.covers.steamgriddb_key = (!value.trim().is_empty()).then_some(value);
+                    }
+                    UndoSubject::IgdbClientId => {
+                        self.text_histories.igdb_client_id.apply(shortcut);
+                        let value = self.text_histories.igdb_client_id.current();
+                        self.config.covers.igdb_client_id = (!value.trim().is_empty()).then_some(value);
+                    }
+                    UndoSubject::IgdbClientSecret => {
+                        self.text_histories.igdb_client_secret.apply(shortcut);
+                        let value = self.text_histories.igdb_client_secret.current();
+                        self.config.covers.igdb_client_secret = (!value.trim().is_empty()).then_some(value);
+                    }
                     UndoSubject::ModalField(field) => {
                         match field {
                             ModalInputKind::Url => self.text_histories.modal.url.apply(shortcut),
@@ -3050,6 +3099,47 @@ impl App {
                     },
                     Message::FoundUnknownSaves,
                 )
+            }
+            Message::FetchCovers => {
+                if !self.config.covers.show || !self.config.covers.download || self.fetching_covers {
+                    return Task::none();
+                }
+
+                // Only a handful at a time, so that one slow lookup doesn't hold up the rest.
+                const BATCH: usize = 8;
+                let wanted: Vec<_> = self
+                    .games_in_view()
+                    .into_iter()
+                    .filter(|game| !ludusavi::cover::is_resolved(game))
+                    .take(BATCH)
+                    .collect();
+                if wanted.is_empty() {
+                    return Task::none();
+                }
+
+                self.fetching_covers = true;
+                let config = self.config.clone();
+                let manifest = self.manifest.extended.clone();
+                Task::perform(
+                    async move {
+                        let mut found = false;
+                        for game in wanted {
+                            if ludusavi::cover::fetch(&config, &manifest, &game).await.is_some() {
+                                found = true;
+                            }
+                        }
+                        found
+                    },
+                    |found| Message::FetchedCovers { found },
+                )
+            }
+            Message::FetchedCovers { found } => {
+                self.fetching_covers = false;
+                if found {
+                    crate::gui::cover::clear_cache();
+                }
+                // Keep going until every game has been looked at.
+                Task::done(Message::FetchCovers)
             }
             Message::SetAutostart(enabled) => {
                 if let Err(e) = ludusavi::autostart::set_enabled(enabled) {

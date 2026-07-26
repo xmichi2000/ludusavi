@@ -48,12 +48,15 @@
     since their saves may be incomplete.
     You can change this with the "skip games that are currently running" option
     (`watch.skipRunningGames` in the config file).
-  * The game list now shows cover art for games,
-    reusing the images that Steam has already downloaded to its own cache,
-    and falling back to the icon of the game's own program for everything else,
-    so nothing is fetched from the internet.
-    You can turn this off with the "show cover art for games" option
-    on the "other" screen (`scan.showCovers` in the config file).
+  * The game list now shows cover art for games.
+    Ludusavi looks for a real cover in several places:
+    what Steam has already downloaded, Steam's servers (no account needed),
+    the artwork your launchers have recorded,
+    and optionally SteamGridDB and IGDB if you provide a key.
+    The icon of the game's own program is used only as a last resort.
+    Covers are saved locally, so each game is only looked up once,
+    and you can supply your own image for any game.
+    See [the help page](/docs/help/covers.md) for details.
   * There is a new "dashboard" screen that summarizes the state of your backups:
     where they are stored, how many games and restore points there are,
     when the latest backup was made and how far the history goes back,

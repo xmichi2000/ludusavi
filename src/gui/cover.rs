@@ -102,7 +102,10 @@ fn executable_icon(config: &Config, manifest: &Manifest, game: &str) -> Option<S
 }
 
 fn look_up(config: &Config, manifest: &Manifest, game: &str) -> Option<StrictPath> {
-    steam_cover(config, manifest, game).or_else(|| executable_icon(config, manifest, game))
+    // A real cover beats an icon, and one you chose yourself beats everything.
+    ludusavi::cover::cached(game)
+        .or_else(|| steam_cover(config, manifest, game))
+        .or_else(|| executable_icon(config, manifest, game))
 }
 
 /// The cover image for a game, if we can find one on this computer.

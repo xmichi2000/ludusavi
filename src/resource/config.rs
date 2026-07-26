@@ -107,7 +107,11 @@ pub enum Event {
     CloudPath(String),
     SortCustomGames,
     OnlyConstructiveBackups(bool),
-    ShowCovers(bool),
+    CoversShow(bool),
+    CoversDownload(bool),
+    SteamGridDbKey(String),
+    IgdbClientId(String),
+    IgdbClientSecret(String),
     FindUnknownSavesOnStartup(bool),
     WatchEnabled(bool),
     WatchNotify(bool),
@@ -131,6 +135,7 @@ pub struct Config {
     pub restore: RestoreConfig,
     pub scan: Scan,
     pub watch: Watch,
+    pub covers: Covers,
     pub cloud: Cloud,
     pub apps: Apps,
     pub custom_games: Vec<CustomGame>,
@@ -1216,8 +1221,6 @@ pub struct Scan {
     pub emulator_save_templates: Vec<String>,
     /// Also check common save folders inside each game's install directory (saves, save, savegames, saved).
     pub install_dir_saves: bool,
-    /// In the GUI, show cover art for games that Steam has already downloaded.
-    pub show_covers: bool,
     /// Look for unknown save folders when the GUI starts.
     pub find_unknown_saves_on_startup: bool,
     /// Folders that you've dismissed when looking for unknown saves.
@@ -1235,9 +1238,45 @@ impl Default for Scan {
             emulator_saves: true,
             emulator_save_templates: vec![],
             install_dir_saves: true,
-            show_covers: true,
             find_unknown_saves_on_startup: true,
             dismissed_unknown_saves: Default::default(),
+        }
+    }
+}
+
+/// Settings for cover art in the game list.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
+#[serde(default, rename_all = "camelCase")]
+pub struct Covers {
+    /// Show cover art next to each game.
+    pub show: bool,
+    /// Download missing covers from Steam and from your launchers' artwork.
+    /// Covers are saved locally, so each game is only looked up once.
+    pub download: bool,
+    /// Key for SteamGridDB, which has covers for games that Steam doesn't list.
+    /// You can get one for free at steamgriddb.com.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub steamgriddb_key: Option<String>,
+    /// Twitch client ID for IGDB, which has covers for most games.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub igdb_client_id: Option<String>,
+    /// Twitch client secret for IGDB.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub igdb_client_secret: Option<String>,
+    /// Ask SteamGridDB and IGDB even when a Steam or launcher cover was found.
+    /// They often have nicer portrait covers, but this makes each lookup slower.
+    pub always_check_databases: bool,
+}
+
+impl Default for Covers {
+    fn default() -> Self {
+        Self {
+            show: true,
+            download: true,
+            steamgriddb_key: None,
+            igdb_client_id: None,
+            igdb_client_secret: None,
+            always_check_databases: false,
         }
     }
 }
@@ -2332,7 +2371,6 @@ mod tests {
               showUnchangedGames: false
               showUnscannedGames: false
               emulatorSaves: false
-              showCovers: false
               findUnknownSavesOnStartup: false
             cloud:
               remote:
@@ -2436,11 +2474,11 @@ mod tests {
                     emulator_saves: false,
                     emulator_save_templates: vec![],
                     install_dir_saves: true,
-                    show_covers: false,
                     find_unknown_saves_on_startup: false,
                     dismissed_unknown_saves: Default::default(),
                 },
                 watch: Default::default(),
+                covers: Default::default(),
                 cloud: Cloud {
                     remote: Some(Remote::GoogleDrive {
                         id: "remote-id".to_string()
@@ -2574,7 +2612,6 @@ scan:
   emulatorSaves: false
   emulatorSaveTemplates: []
   installDirSaves: false
-  showCovers: false
   findUnknownSavesOnStartup: false
   dismissedUnknownSaves: []
 watch:
@@ -2584,6 +2621,10 @@ watch:
   settleSeconds: 10
   pollSeconds: 15
   startWithGui: true
+covers:
+  show: true
+  download: true
+  alwaysCheckDatabases: false
 cloud:
   remote:
     GoogleDrive:
@@ -2685,11 +2726,11 @@ blacklistedGames:
                     emulator_saves: false,
                     emulator_save_templates: vec![],
                     install_dir_saves: false,
-                    show_covers: false,
                     find_unknown_saves_on_startup: false,
                     dismissed_unknown_saves: Default::default(),
                 },
                 watch: Default::default(),
+                covers: Default::default(),
                 cloud: Cloud {
                     remote: Some(Remote::GoogleDrive {
                         id: "remote-id".to_string()

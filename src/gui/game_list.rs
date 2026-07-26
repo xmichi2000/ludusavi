@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, HashSet};
+﻿use std::collections::{BTreeSet, HashSet};
 
 use iced::{
     Alignment, Length, alignment::Horizontal as HorizontalAlignment, keyboard::Modifiers, padding, widget::tooltip,
@@ -97,8 +97,8 @@ impl GameListEntry {
                         })
                         .push({
                             config
-                                .scan
-                                .show_covers
+                                .covers
+                                .show
                                 .then(|| crate::gui::cover::find(config, manifest, &name))
                                 .flatten()
                                 .map(|cover| {
@@ -401,9 +401,9 @@ impl GameListEntry {
 
                     let label = backup.when_local().format("%m-%d %H:%M").to_string();
                     let label = if full {
-                        format!("● {label}")
+                        format!("â— {label}")
                     } else {
-                        format!("○ {label}")
+                        format!("â—‹ {label}")
                     };
 
                     parent.push(

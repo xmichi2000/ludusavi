@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, HashMap, HashSet};
+﻿use std::collections::{BTreeSet, HashMap, HashSet};
 
 use iced::{Length, widget::text_input};
 
@@ -211,6 +211,11 @@ pub enum Message {
     },
     FindUnknownSaves,
     FoundUnknownSaves(Vec<UnknownSaveCandidate>),
+    FetchCovers,
+    FetchedCovers {
+        /// Whether anything was found, so the list can refresh.
+        found: bool,
+    },
     SetAutostart(bool),
     RefreshDashboard,
     DashboardRefreshed(Box<crate::gui::screen::DashboardStatus>),
@@ -731,6 +736,9 @@ pub enum UndoSubject {
     RcloneArguments,
     CloudRemoteId,
     CloudPath,
+    SteamGridDbKey,
+    IgdbClientId,
+    IgdbClientSecret,
     ModalField(ModalInputKind),
     BackupComment(String),
 }
@@ -763,6 +771,8 @@ impl UndoSubject {
             | UndoSubject::CloudRemoteId
             | UndoSubject::CloudPath
             | UndoSubject::BackupComment(_) => Privacy::Public,
+            // These are credentials, so they shouldn't be readable over your shoulder.
+            UndoSubject::SteamGridDbKey | UndoSubject::IgdbClientId | UndoSubject::IgdbClientSecret => Privacy::Private,
             UndoSubject::ModalField(field) => match field {
                 ModalInputKind::Url | ModalInputKind::Host | ModalInputKind::Port | ModalInputKind::Username => {
                     Privacy::Public
