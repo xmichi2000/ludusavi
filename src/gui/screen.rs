@@ -31,10 +31,12 @@ use crate::{
 const RCLONE_URL: &str = "https://rclone.org/downloads";
 const RELEASE_URL: &str = "https://github.com/mtkennerly/ludusavi/releases";
 
-/// Content stops widening at some point, since a row stretched across a wide
-/// window puts its ends too far apart to read as one line.
+/// Content uses the window it is given. An earlier version capped this at a
+/// narrow width, which left most of a maximised window empty.
+/// The cap that remains only keeps ultrawide monitors from stretching a row
+/// so far that its two ends stop reading as one line.
 /// See docs/design-system.md.
-const CONTENT_WIDTH: f32 = 1100.0;
+const CONTENT_WIDTH: f32 = 2200.0;
 
 fn template(content: Column) -> Element {
     Container::new(
@@ -418,19 +420,27 @@ impl Dashboard {
                 )
                 .class(style::Container::GameListEntry),
             )
+            // Automatic backups are the one thing worth changing from here,
+            // so the switch lives next to the explanation of what it does.
             .push(
                 Container::new(
                     Column::new()
-                        .padding(5)
-                        .spacing(10)
-                        .push(line(
-                            TRANSLATOR.dashboard_automatic_backups_label(),
-                            if config.watch.enabled {
-                                TRANSLATOR.dashboard_on()
-                            } else {
-                                TRANSLATOR.dashboard_off()
-                            },
+                        .padding(16)
+                        .spacing(8)
+                        .push(checkbox(
+                            TRANSLATOR.watch_enabled(),
+                            config.watch.enabled,
+                            Message::config(config::Event::WatchEnabled),
                         ))
+                        .push(text(TRANSLATOR.dashboard_automatic_backups_explanation()).size(13)),
+                )
+                .class(style::Container::GameListEntry),
+            )
+            .push(
+                Container::new(
+                    Column::new()
+                        .padding(16)
+                        .spacing(8)
                         .push(line(
                             TRANSLATOR.dashboard_cloud_label(),
                             match config.cloud.remote.as_ref() {
@@ -439,7 +449,14 @@ impl Dashboard {
                             },
                         ))
                         .push_if(config.cloud.remote.is_some(), || {
-                            line(TRANSLATOR.dashboard_cloud_synced_label(), when(cache.cloud.synced))
+                            line(
+                                TRANSLATOR.dashboard_cloud_synced_label(),
+                                match cache.cloud.synced {
+                                    Some(synced) => when(Some(synced)),
+                                    // Saying "never" beats a bare dash that could mean anything.
+                                    None => TRANSLATOR.dashboard_cloud_never_synced(),
+                                },
+                            )
                         }),
                 )
                 .class(style::Container::GameListEntry),

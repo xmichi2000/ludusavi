@@ -206,12 +206,12 @@ impl button::Catalog for Theme {
             },
             border: Border {
                 color: match class {
-                    Button::NavButtonActive | Button::NavButtonInactive => self.navigation,
+                    Button::NavButtonActive => self.navigation,
                     Button::Secondary => self.text.alpha(0.35),
                     _ => Color::TRANSPARENT,
                 },
                 width: match class {
-                    Button::NavButtonActive | Button::NavButtonInactive | Button::Secondary => 1.0,
+                    Button::NavButtonActive | Button::Secondary => 1.0,
                     _ => 0.0,
                 },
                 radius: match class {
@@ -230,7 +230,8 @@ impl button::Catalog for Theme {
                 Button::GameListEntryTitleUnscanned => self.text.alpha(0.6),
                 Button::GameListEntryTitle => self.text,
                 Button::GameListEntryTitleFailed => self.negative,
-                Button::NavButtonInactive | Button::Bare | Button::Secondary => self.text,
+                Button::NavButtonInactive => self.text.alpha(0.65),
+                Button::Bare | Button::Secondary => self.text,
                 _ => self.text_button.alpha(0.8),
             },
             shadow: Shadow::default(),

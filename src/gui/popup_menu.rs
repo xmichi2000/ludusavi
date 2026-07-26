@@ -159,8 +159,12 @@ where
                 state.is_open = !self.options.is_empty();
                 shell.invalidate_layout();
             }
-        } else {
+        } else if state.honored_request {
+            // The request moved to another row, so this menu steps aside
+            // instead of leaving a stack of open menus behind.
             state.honored_request = false;
+            state.is_open = false;
+            shell.invalidate_layout();
         }
 
         match event {

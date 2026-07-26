@@ -551,6 +551,14 @@ impl Translator {
         translate("field-dashboard-cloud")
     }
 
+    pub fn dashboard_automatic_backups_explanation(&self) -> String {
+        translate("label-dashboard-automatic-backups-explanation")
+    }
+
+    pub fn dashboard_cloud_never_synced(&self) -> String {
+        translate("label-dashboard-cloud-never-synced")
+    }
+
     pub fn dashboard_cloud_synced_label(&self) -> String {
         translate("field-dashboard-cloud-synced")
     }
