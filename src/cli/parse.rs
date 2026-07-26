@@ -445,6 +445,28 @@ pub enum Subcommand {
         #[clap(long, requires = "adopt")]
         name: Option<String>,
     },
+    /// Check whether your backups are still intact.
+    ///
+    /// This verifies that every file recorded in a backup is present
+    /// and still has the content that was backed up,
+    /// so it can detect backups that were damaged after the fact.
+    /// Since it reads the backed up files, it may take a while.
+    Validate {
+        /// Directory in which to find backups.
+        /// When unset, this defaults to the restore path from the config file.
+        #[clap(long, value_parser = parse_strict_path)]
+        path: Option<StrictPath>,
+
+        /// Print information to stdout in machine-readable JSON.
+        /// This replaces the default, human-readable output.
+        #[clap(long)]
+        api: bool,
+
+        /// Only check these specific games.
+        /// Alternatively supports stdin (one value per line).
+        #[clap()]
+        games: Vec<String>,
+    },
     /// Watch for running games and back up each one when it closes.
     ///
     /// This keeps running until you stop it,
@@ -617,6 +639,7 @@ impl Subcommand {
             Self::Backups { .. } => false,
             Self::Find { .. } => false,
             Self::FindUnknown { .. } => false,
+            Self::Validate { .. } => false,
             Self::Watch { .. } => false,
             Self::Manifest { .. } => false,
             Self::Config { .. } => false,
@@ -636,6 +659,7 @@ impl Subcommand {
             Self::Backups { .. } => false,
             Self::Find { .. } => false,
             Self::FindUnknown { .. } => false,
+            Self::Validate { .. } => false,
             Self::Watch { .. } => false,
             Self::Manifest { .. } => false,
             Self::Config { .. } => false,

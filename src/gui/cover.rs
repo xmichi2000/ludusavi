@@ -55,19 +55,6 @@ fn look_up(config: &Config, manifest: &Manifest, game: &str) -> Option<StrictPat
     None
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// This only checks the lookup itself; there may not be any covers on the test machine.
-    #[test]
-    fn ignores_games_without_a_steam_id() {
-        let config = Config::default();
-        let manifest = Manifest::default();
-        assert_eq!(None, look_up(&config, &manifest, "Nonexistent Game"));
-    }
-}
-
 /// The cover image for a game, if we can find one on this computer.
 pub fn find(config: &Config, manifest: &Manifest, game: &str) -> Option<StrictPath> {
     let mut cache = CACHE.lock().ok()?;
@@ -79,4 +66,17 @@ pub fn find(config: &Config, manifest: &Manifest, game: &str) -> Option<StrictPa
     let found = look_up(config, manifest, game);
     cache.insert(game.to_string(), found.clone());
     found
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// This only checks the lookup itself; there may not be any covers on the test machine.
+    #[test]
+    fn ignores_games_without_a_steam_id() {
+        let config = Config::default();
+        let manifest = Manifest::default();
+        assert_eq!(None, look_up(&config, &manifest, "Nonexistent Game"));
+    }
 }

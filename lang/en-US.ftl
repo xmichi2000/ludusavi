@@ -365,3 +365,14 @@ custom-game-will-extend = This custom game extends a manifest entry
 
 operation-will-only-include-listed-games = This will only process the games that are currently listed
 check-show-covers = Show cover art for games
+cli-validate-all-good =
+    { $total ->
+        [one] The backup for 1 game is intact.
+       *[other] The backups for { $total } games are intact.
+    }
+cli-validate-faulty =
+    { $total ->
+        [one] The backup for 1 game is damaged. Back up that game again to replace it.
+       *[other] The backups for { $total } games are damaged. Back those games up again to replace them.
+    }
+label-unknown-saves-scanning = Looking for unknown save folders...

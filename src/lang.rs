@@ -566,6 +566,10 @@ impl Translator {
         translate("label-dashboard-off")
     }
 
+    pub fn unknown_saves_scanning(&self) -> String {
+        translate("label-unknown-saves-scanning")
+    }
+
     pub fn show_covers(&self) -> String {
         translate("check-show-covers")
     }
@@ -614,6 +618,18 @@ impl Translator {
         let mut args = FluentArgs::new();
         args.set(GAME, games);
         translate_args("cli-backup-skipped-running-games", &args)
+    }
+
+    pub fn cli_validate_all_good(&self, total: usize) -> String {
+        let mut args = FluentArgs::new();
+        args.set(TOTAL, total);
+        translate_args("cli-validate-all-good", &args)
+    }
+
+    pub fn cli_validate_faulty(&self, total: usize) -> String {
+        let mut args = FluentArgs::new();
+        args.set(TOTAL, total);
+        translate_args("cli-validate-faulty", &args)
     }
 
     pub fn cli_watch_started(&self) -> String {

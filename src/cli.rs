@@ -966,6 +966,50 @@ pub fn run(sub: Subcommand, no_manifest_update: bool, try_manifest_update: bool)
                 }
             }
         },
+        Subcommand::Validate { path, api, games } => {
+            let games = parse_games(games);
+            let mut reporter = if api { Reporter::json() } else { Reporter::standard() };
+
+            let restore_dir = match path {
+                None => config.restore.path.clone(),
+                Some(p) => p,
+            };
+            let layout = BackupLayout::new(restore_dir);
+
+            let subjects: Vec<_> = if games.is_empty() {
+                layout.restorable_games()
+            } else {
+                let manifest = load_manifest(&config, &mut cache, no_manifest_update, try_manifest_update)?;
+                let title_finder = TitleFinder::new(&config, &manifest, layout.restorable_game_set());
+                match evaluate_games(layout.restorable_game_set(), games, &title_finder) {
+                    Ok(games) => games,
+                    Err(games) => {
+                        reporter.trip_unknown_games(games.clone());
+                        reporter.print_failure();
+                        return Err(Error::CliUnrecognizedGames { games });
+                    }
+                }
+            };
+
+            let mut faulty = vec![];
+            for game in &subjects {
+                let game_layout = layout.game_layout(game);
+                if !game_layout.validate(BackupId::Latest) {
+                    faulty.push(game.clone());
+                }
+            }
+
+            if faulty.is_empty() {
+                println!("{}", TRANSLATOR.cli_validate_all_good(subjects.len()));
+            } else {
+                for game in &faulty {
+                    println!("{game}");
+                }
+                println!();
+                println!("{}", TRANSLATOR.cli_validate_faulty(faulty.len()));
+                failed = true;
+            }
+        }
         Subcommand::Watch { once, background: _ } => {
             let manifest = load_manifest(&config, &mut cache, no_manifest_update, try_manifest_update)?;
             let layout = BackupLayout::new(config.backup.path.clone());

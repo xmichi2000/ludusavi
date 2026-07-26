@@ -314,3 +314,14 @@ field-retention-keep-weekly-weeks = Wöchentlich (Wochen):
 check-watch-at-login = Beim Anmelden nach Spielen suchen
 autostart-failed = Der Autostart-Eintrag konnte nicht geändert werden: { $message }
 check-show-covers = Titelbilder der Spiele anzeigen
+cli-validate-all-good =
+    { $total ->
+        [one] Die Sicherung von 1 Spiel ist unbeschädigt.
+       *[other] Die Sicherungen von { $total } Spielen sind unbeschädigt.
+    }
+cli-validate-faulty =
+    { $total ->
+        [one] Die Sicherung von 1 Spiel ist beschädigt. Sichere dieses Spiel erneut, um sie zu ersetzen.
+       *[other] Die Sicherungen von { $total } Spielen sind beschädigt. Sichere diese Spiele erneut, um sie zu ersetzen.
+    }
+label-unknown-saves-scanning = Suche nach unbekannten Spielstand-Ordnern...

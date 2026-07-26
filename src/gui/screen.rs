@@ -395,7 +395,15 @@ impl CustomGames {
                     .push(button::filter(self.filter.enabled)),
             )
             .push(self.filter.view(histories))
-            .push_if(self.unknown_saves.is_some(), || self.view_unknown_saves())
+            .push_if(self.scanning_unknown_saves, || {
+                Row::new()
+                    .spacing(10)
+                    .align_y(Alignment::Center)
+                    .push(text(TRANSLATOR.unknown_saves_scanning()))
+            })
+            .push_if(!self.scanning_unknown_saves && self.unknown_saves.is_some(), || {
+                self.view_unknown_saves()
+            })
             .push(editor::custom_games(
                 config,
                 manifest,
