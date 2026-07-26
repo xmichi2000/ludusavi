@@ -364,6 +364,12 @@ impl GameListEntry {
                             game: name.clone(),
                         }))
                 }))
+                // A timeline of restore points, so you can see the history at a glance
+                // instead of reading through a drop-down.
+                .push_if(
+                    expanded && scan_kind.is_restore() && self.scan_info.available_backups.len() > 1,
+                    || self.view_timeline(operating),
+                )
                 .push({
                     expanded
                         .then(|| {
@@ -377,6 +383,45 @@ impl GameListEntry {
         )
         .id(name)
         .class(style::Container::GameListEntry)
+    }
+
+    /// One entry per restore point, oldest first, with the selected one highlighted.
+    fn view_timeline(&self, operating: bool) -> iced::widget::row::Wrapping<'_, Message, style::Theme> {
+        let selected = self.scan_info.backup.as_ref().map(|x| x.name().to_string());
+
+        self.scan_info
+            .available_backups
+            .iter()
+            .fold(
+                Row::new().padding([5, 20]).spacing(5).align_y(Alignment::Center),
+                |parent, backup| {
+                    let game = self.scan_info.game_name.clone();
+                    let chosen = selected.as_deref() == Some(backup.name());
+                    let full = backup.kind() == crate::scan::layout::BackupKind::Full;
+
+                    let label = backup.when_local().format("%m-%d %H:%M").to_string();
+                    let label = if full {
+                        format!("● {label}")
+                    } else {
+                        format!("○ {label}")
+                    };
+
+                    parent.push(
+                        Button::new(text(label).size(12).align_x(HorizontalAlignment::Center))
+                            .on_press_maybe((!operating && !chosen).then(|| Message::SelectedBackupToRestore {
+                                game,
+                                backup: backup.clone(),
+                            }))
+                            .class(if chosen {
+                                style::Button::Primary
+                            } else {
+                                style::Button::GameActionPrimary
+                            })
+                            .padding([2, 6]),
+                    )
+                },
+            )
+            .wrap()
     }
 
     pub fn refresh_tree(&mut self, duplicate_detector: &DuplicateDetector, config: &Config, scan_kind: ScanKind) {

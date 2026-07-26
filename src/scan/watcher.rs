@@ -176,6 +176,14 @@ impl GameIndex {
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
+
+    /// Where a game is installed, if we know.
+    pub fn install_dir_of(&self, game: &str) -> Option<&StrictPath> {
+        self.entries
+            .iter()
+            .find(|(_, title)| title == game)
+            .map(|(path, _)| path)
+    }
 }
 
 /// Games that were running before, but aren't anymore.

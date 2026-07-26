@@ -4,6 +4,7 @@ mod button;
 mod common;
 mod cover;
 mod editor;
+mod exe_icon;
 mod file_tree;
 mod font;
 mod game_list;

@@ -50,6 +50,7 @@
     (`watch.skipRunningGames` in the config file).
   * The game list now shows cover art for games,
     reusing the images that Steam has already downloaded to its own cache,
+    and falling back to the icon of the game's own program for everything else,
     so nothing is fetched from the internet.
     You can turn this off with the "show cover art for games" option
     on the "other" screen (`scan.showCovers` in the config file).
@@ -67,6 +68,9 @@
   * When choosing which backup to restore,
     the list now shows each backup's comment along with its date,
     so you can tell your restore points apart at a glance.
+    Expanding a game on the restore screen also shows a timeline of its
+    restore points, where full backups are marked with a filled dot
+    and differential backups with a hollow one.
   * Backup retention can now be time-based:
     instead of keeping a fixed number of full backups,
     Ludusavi can keep every backup generation from the last few days,

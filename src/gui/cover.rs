@@ -1,4 +1,4 @@
-//! Cover art for games, taken from what is already on your computer.
+﻿//! Cover art for games, taken from what is already on your computer.
 //!
 //! Steam stores cover images for your games in its own cache,
 //! so we can reuse those instead of downloading anything.
@@ -31,7 +31,8 @@ pub fn clear_cache() {
     }
 }
 
-fn look_up(config: &Config, manifest: &Manifest, game: &str) -> Option<StrictPath> {
+/// Where Steam keeps the cover images it has downloaded.
+fn steam_cover(config: &Config, manifest: &Manifest, game: &str) -> Option<StrictPath> {
     let steam_id = manifest.0.get(game)?.steam.id?;
 
     for root in config.expanded_roots() {
@@ -53,6 +54,55 @@ fn look_up(config: &Config, manifest: &Manifest, game: &str) -> Option<StrictPat
     }
 
     None
+}
+
+/// Knowing where games are installed is expensive to work out,
+/// so we only do it once, and only if we need it.
+static INSTALLS: LazyLock<Mutex<Option<crate::scan::watcher::GameIndex>>> = LazyLock::new(Mutex::default);
+
+/// Which program to take an icon from for a game.
+fn game_executable(config: &Config, manifest: &Manifest, game: &str) -> Option<StrictPath> {
+    let mut installs = INSTALLS.lock().ok()?;
+    let index = installs.get_or_insert_with(|| {
+        // Only the launchers need this, and they just map their own IDs to titles.
+        let title_finder = crate::scan::TitleFinder::new(config, manifest, Default::default());
+        crate::scan::watcher::GameIndex::build(config, manifest, &title_finder)
+    });
+    let install_dir = index.install_dir_of(game)?;
+
+    let mut best: Option<(u64, StrictPath)> = None;
+    for entry in install_dir.read_dir().ok()?.filter_map(|x| x.ok()) {
+        let path = StrictPath::from(entry.path());
+        if !path.render().to_lowercase().ends_with(".exe") {
+            continue;
+        }
+
+        // Bigger programs tend to be the game itself rather than a helper.
+        let size = entry.metadata().map(|x| x.len()).unwrap_or(0);
+        if best.as_ref().map(|(best, _)| size > *best).unwrap_or(true) {
+            best = Some((size, path));
+        }
+    }
+
+    best.map(|(_, path)| path)
+}
+
+/// An icon taken from the game's own program, saved next to our other data.
+fn executable_icon(config: &Config, manifest: &Manifest, game: &str) -> Option<StrictPath> {
+    let target = crate::prelude::app_dir()
+        .joined("covers")
+        .joined(format!("{}.png", crate::scan::layout::escape_folder_name(game)));
+    if target.is_file() {
+        return Some(target);
+    }
+
+    let executable = game_executable(config, manifest, game)?;
+    crate::gui::exe_icon::save_as_png(&executable, &target)?;
+    Some(target)
+}
+
+fn look_up(config: &Config, manifest: &Manifest, game: &str) -> Option<StrictPath> {
+    steam_cover(config, manifest, game).or_else(|| executable_icon(config, manifest, game))
 }
 
 /// The cover image for a game, if we can find one on this computer.
