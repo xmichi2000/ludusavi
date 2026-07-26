@@ -376,3 +376,11 @@ cli-validate-faulty =
        *[other] The backups for { $total } games are damaged. Back those games up again to replace them.
     }
 label-unknown-saves-scanning = Looking for unknown save folders...
+field-automatic-backups = Automatic backups
+field-interface = Interface
+label-dashboard-health-good = Backups are up to date
+label-dashboard-health-stale = Backups are getting old
+label-dashboard-health-missing = Nothing has been backed up yet
+label-no-games-scanned-yet = No games scanned yet. Use "preview" to see what would be backed up.
+label-no-backups-yet = No backups yet. Back up some games first.
+label-no-games-match-filter = No games match the current filter.

@@ -1,4 +1,4 @@
-﻿use std::collections::HashSet;
+use std::collections::HashSet;
 
 use iced::{Alignment, Length, keyboard, padding};
 
@@ -23,7 +23,7 @@ use crate::{
         config::{self, BackupFormat, CloudFilter, Config, SortKey, Theme, ZipCompression},
         manifest::{Manifest, Store},
     },
-    scan::{DuplicateDetector, Duplication, OperationStatus, ScanKind, radar::UnknownSaveCandidate},
+    scan::{DuplicateDetector, Duplication, OperationStatus, ScanChange, ScanKind, radar::UnknownSaveCandidate},
 };
 
 const RCLONE_URL: &str = "https://rclone.org/downloads";
@@ -251,6 +251,48 @@ pub struct DashboardStatus {
     pub earliest: Option<chrono::DateTime<chrono::Utc>>,
 }
 
+/// How healthy the backups look at a glance.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DashboardHealth {
+    /// Backed up recently.
+    Good,
+    /// It has been a while.
+    Stale,
+    /// Nothing has been backed up at all.
+    Missing,
+}
+
+impl DashboardHealth {
+    /// Backups older than this are worth pointing out.
+    const STALE_DAYS: i64 = 7;
+
+    fn evaluate(status: &DashboardStatus, now: chrono::DateTime<chrono::Utc>) -> Self {
+        match status.latest {
+            None => Self::Missing,
+            Some(latest) if (now - latest).num_days() > Self::STALE_DAYS => Self::Stale,
+            Some(_) => Self::Good,
+        }
+    }
+
+    fn label(&self) -> String {
+        match self {
+            Self::Good => TRANSLATOR.dashboard_health_good(),
+            Self::Stale => TRANSLATOR.dashboard_health_stale(),
+            Self::Missing => TRANSLATOR.dashboard_health_missing(),
+        }
+    }
+
+    /// Reuse the colors that the game list already uses for scan changes:
+    /// added for healthy, positive for stale, negative for missing.
+    fn color(&self) -> ScanChange {
+        match self {
+            Self::Good => ScanChange::New,
+            Self::Stale => ScanChange::Different,
+            Self::Missing => ScanChange::Removed,
+        }
+    }
+}
+
 impl DashboardStatus {
     pub fn gather(config: &Config) -> Self {
         let layout = crate::scan::layout::BackupLayout::new(config.backup.path.clone());
@@ -303,21 +345,60 @@ impl Dashboard {
             }
         }
 
+        /// A headline number with a caption underneath.
+        fn card<'a>(value: String, caption: String) -> Container<'a> {
+            Container::new(
+                Column::new()
+                    .padding(10)
+                    .spacing(5)
+                    .align_x(Alignment::Center)
+                    .push(text(value).size(28))
+                    .push(text(caption).size(13)),
+            )
+            .center_x(180)
+            .class(style::Container::GameListEntry)
+        }
+
         let status = self.status.clone().unwrap_or_default();
+        let health = DashboardHealth::evaluate(&status, chrono::Utc::now());
 
         let content = Column::new()
+            .push(
+                Container::new(
+                    Row::new()
+                        .padding(8)
+                        .spacing(15)
+                        .align_y(Alignment::Center)
+                        .push(text(health.label()).size(16))
+                        .push(text(when(status.latest)).size(16)),
+                )
+                .class(style::Container::ChangeBadge {
+                    change: health.color(),
+                    faded: false,
+                }),
+            )
+            .push(
+                Row::new()
+                    .spacing(15)
+                    .push(card(status.games.to_string(), TRANSLATOR.dashboard_games_label()))
+                    .push(card(
+                        status.restore_points.to_string(),
+                        TRANSLATOR.dashboard_restore_points_label(),
+                    ))
+                    .push(card(
+                        match unknown_saves {
+                            Some(total) => total.to_string(),
+                            None => "-".to_string(),
+                        },
+                        TRANSLATOR.dashboard_unknown_saves_label(),
+                    )),
+            )
             .push(
                 Container::new(
                     Column::new()
                         .padding(5)
                         .spacing(10)
                         .push(line(TRANSLATOR.backup_target_label(), config.backup.path.render()))
-                        .push(line(TRANSLATOR.dashboard_games_label(), status.games.to_string()))
-                        .push(line(
-                            TRANSLATOR.dashboard_restore_points_label(),
-                            status.restore_points.to_string(),
-                        ))
-                        .push(line(TRANSLATOR.dashboard_latest_label(), when(status.latest)))
                         .push(line(TRANSLATOR.dashboard_earliest_label(), when(status.earliest))),
                 )
                 .class(style::Container::GameListEntry),
@@ -344,14 +425,7 @@ impl Dashboard {
                         ))
                         .push_if(config.cloud.remote.is_some(), || {
                             line(TRANSLATOR.dashboard_cloud_synced_label(), when(cache.cloud.synced))
-                        })
-                        .push(line(
-                            TRANSLATOR.dashboard_unknown_saves_label(),
-                            match unknown_saves {
-                                Some(total) => total.to_string(),
-                                None => "-".to_string(),
-                            },
-                        )),
+                        }),
                 )
                 .class(style::Container::GameListEntry),
             )
@@ -580,21 +654,6 @@ pub fn other<'a>(
                                     .class(style::Checkbox),
                                 )
                                 .push(checkbox(
-                                    TRANSLATOR.show_disabled_games(),
-                                    config.scan.show_deselected_games,
-                                    Message::config(config::Event::ShowDeselectedGames),
-                                ))
-                                .push(checkbox(
-                                    TRANSLATOR.show_unchanged_games(),
-                                    config.scan.show_unchanged_games,
-                                    Message::config(config::Event::ShowUnchangedGames),
-                                ))
-                                .push(checkbox(
-                                    TRANSLATOR.show_unscanned_games(),
-                                    config.scan.show_unscanned_games,
-                                    Message::config(config::Event::ShowUnscannedGames),
-                                ))
-                                .push(checkbox(
                                     TRANSLATOR.check_emulator_saves(),
                                     config.scan.emulator_saves,
                                     Message::config(config::Event::EmulatorSaves),
@@ -610,61 +669,6 @@ pub fn other<'a>(
                                     TRANSLATOR.check_install_dir_saves(),
                                     config.scan.install_dir_saves,
                                     Message::config(config::Event::InstallDirSaves),
-                                ))
-                                .push(checkbox(
-                                    TRANSLATOR.show_covers(),
-                                    config.scan.show_covers,
-                                    Message::config(config::Event::ShowCovers),
-                                ))
-                                .push(checkbox(
-                                    TRANSLATOR.find_unknown_saves_on_startup(),
-                                    config.scan.find_unknown_saves_on_startup,
-                                    Message::config(config::Event::FindUnknownSavesOnStartup),
-                                ))
-                                .push(checkbox(
-                                    TRANSLATOR.watch_enabled(),
-                                    config.watch.enabled,
-                                    Message::config(config::Event::WatchEnabled),
-                                ))
-                                .push_if(config.watch.enabled, || {
-                                    Column::new()
-                                        .spacing(5)
-                                        .padding(padding::left(35))
-                                        .push(checkbox(
-                                            TRANSLATOR.watch_notify(),
-                                            config.watch.notify,
-                                            Message::config(config::Event::WatchNotify),
-                                        ))
-                                        .push_if(ludusavi::autostart::supported(), || {
-                                            checkbox(
-                                                TRANSLATOR.watch_at_login(),
-                                                ludusavi::autostart::enabled(),
-                                                Message::SetAutostart,
-                                            )
-                                        })
-                                        .push(
-                                            Row::new()
-                                                .spacing(20)
-                                                .height(30)
-                                                .align_y(Alignment::Center)
-                                                .push(number_input(
-                                                    config.watch.settle_seconds as i32,
-                                                    TRANSLATOR.watch_settle_seconds(),
-                                                    0..=600,
-                                                    Message::config(|x| config::Event::WatchSettleSeconds(x as u32)),
-                                                ))
-                                                .push(number_input(
-                                                    config.watch.poll_seconds as i32,
-                                                    TRANSLATOR.watch_poll_seconds(),
-                                                    5..=600,
-                                                    Message::config(|x| config::Event::WatchPollSeconds(x as u32)),
-                                                )),
-                                        )
-                                })
-                                .push(checkbox(
-                                    TRANSLATOR.watch_skip_running_games(),
-                                    config.watch.skip_running_games,
-                                    Message::config(config::Event::WatchSkipRunningGames),
                                 ))
                                 .push(checkbox(
                                     TRANSLATOR.field(&TRANSLATOR.explanation_for_exclude_cloud_games()),
@@ -750,6 +754,101 @@ pub fn other<'a>(
                                             .class(style::Checkbox),
                                         ),
                                 ),
+                        )
+                        .class(style::Container::GameListEntry),
+                    ),
+                )
+                .push(
+                    Column::new()
+                        .spacing(5)
+                        .push(text(TRANSLATOR.automatic_backups_field()))
+                        .push(
+                            Container::new(
+                                Column::new()
+                                    .padding(5)
+                                    .spacing(10)
+                                    .push(checkbox(
+                                        TRANSLATOR.watch_enabled(),
+                                        config.watch.enabled,
+                                        Message::config(config::Event::WatchEnabled),
+                                    ))
+                                    .push_if(config.watch.enabled, || {
+                                        Column::new()
+                                            .spacing(10)
+                                            .padding(padding::left(35))
+                                            .push(checkbox(
+                                                TRANSLATOR.watch_notify(),
+                                                config.watch.notify,
+                                                Message::config(config::Event::WatchNotify),
+                                            ))
+                                            .push_if(ludusavi::autostart::supported(), || {
+                                                checkbox(
+                                                    TRANSLATOR.watch_at_login(),
+                                                    ludusavi::autostart::enabled(),
+                                                    Message::SetAutostart,
+                                                )
+                                            })
+                                            .push(
+                                                Row::new()
+                                                    .spacing(20)
+                                                    .height(30)
+                                                    .align_y(Alignment::Center)
+                                                    .push(number_input(
+                                                        config.watch.settle_seconds as i32,
+                                                        TRANSLATOR.watch_settle_seconds(),
+                                                        0..=600,
+                                                        Message::config(|x| {
+                                                            config::Event::WatchSettleSeconds(x as u32)
+                                                        }),
+                                                    ))
+                                                    .push(number_input(
+                                                        config.watch.poll_seconds as i32,
+                                                        TRANSLATOR.watch_poll_seconds(),
+                                                        5..=600,
+                                                        Message::config(|x| config::Event::WatchPollSeconds(x as u32)),
+                                                    )),
+                                            )
+                                    })
+                                    .push(checkbox(
+                                        TRANSLATOR.watch_skip_running_games(),
+                                        config.watch.skip_running_games,
+                                        Message::config(config::Event::WatchSkipRunningGames),
+                                    ))
+                                    .push(checkbox(
+                                        TRANSLATOR.find_unknown_saves_on_startup(),
+                                        config.scan.find_unknown_saves_on_startup,
+                                        Message::config(config::Event::FindUnknownSavesOnStartup),
+                                    )),
+                            )
+                            .class(style::Container::GameListEntry),
+                        ),
+                )
+                .push(
+                    Column::new().spacing(5).push(text(TRANSLATOR.interface_field())).push(
+                        Container::new(
+                            Column::new()
+                                .padding(5)
+                                .spacing(10)
+                                .push(checkbox(
+                                    TRANSLATOR.show_covers(),
+                                    config.scan.show_covers,
+                                    Message::config(config::Event::ShowCovers),
+                                ))
+                                .push(checkbox(
+                                    TRANSLATOR.show_disabled_games(),
+                                    config.scan.show_deselected_games,
+                                    Message::config(config::Event::ShowDeselectedGames),
+                                ))
+                                .push(checkbox(
+                                    TRANSLATOR.show_unchanged_games(),
+                                    config.scan.show_unchanged_games,
+                                    Message::config(config::Event::ShowUnchangedGames),
+                                ))
+                                .push(checkbox(
+                                    TRANSLATOR.show_unscanned_games(),
+                                    config.scan.show_unscanned_games,
+                                    Message::config(config::Event::ShowUnscannedGames),
+                                )),
                         )
                         .class(style::Container::GameListEntry),
                     ),

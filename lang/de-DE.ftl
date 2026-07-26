@@ -325,3 +325,11 @@ cli-validate-faulty =
        *[other] Die Sicherungen von { $total } Spielen sind beschädigt. Sichere diese Spiele erneut, um sie zu ersetzen.
     }
 label-unknown-saves-scanning = Suche nach unbekannten Spielstand-Ordnern...
+field-automatic-backups = Automatische Sicherungen
+field-interface = Darstellung
+label-dashboard-health-good = Sicherungen sind aktuell
+label-dashboard-health-stale = Sicherungen werden alt
+label-dashboard-health-missing = Noch nichts gesichert
+label-no-games-scanned-yet = Noch nichts durchsucht. Mit „Vorschau" siehst du, was gesichert würde.
+label-no-backups-yet = Noch keine Sicherungen vorhanden. Sichere zuerst einige Spiele.
+label-no-games-match-filter = Keine Spiele entsprechen dem Filter.

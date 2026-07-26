@@ -109,38 +109,43 @@ impl GameListEntry {
                                 })
                         })
                         .push(
-                            Button::new(text(display_name.to_string()).align_x(HorizontalAlignment::Center))
-                                .on_press_maybe(if self.scanned {
-                                    Some(Message::ToggleGameListEntryExpanded {
-                                        name: self.scan_info.game_name.clone(),
-                                    })
-                                } else if !operating {
-                                    match scan_kind {
-                                        ScanKind::Backup => Some(Message::Backup(BackupPhase::Start {
-                                            preview: true,
-                                            repair: false,
-                                            jump: false,
-                                            games: Some(GameSelection::single(self.scan_info.game_name.clone())),
-                                        })),
-                                        ScanKind::Restore => Some(Message::Restore(RestorePhase::Start {
-                                            preview: true,
-                                            games: Some(GameSelection::single(self.scan_info.game_name.clone())),
-                                        })),
-                                    }
-                                } else {
-                                    None
+                            // Slightly larger than the metadata around it, to lead the eye.
+                            Button::new(
+                                text(display_name.to_string())
+                                    .size(16)
+                                    .align_x(HorizontalAlignment::Center),
+                            )
+                            .on_press_maybe(if self.scanned {
+                                Some(Message::ToggleGameListEntryExpanded {
+                                    name: self.scan_info.game_name.clone(),
                                 })
-                                .class(if !self.scanned {
-                                    style::Button::GameListEntryTitleUnscanned
-                                } else if !enabled || all_items_ignored {
-                                    style::Button::GameListEntryTitleDisabled
-                                } else if successful {
-                                    style::Button::GameListEntryTitle
-                                } else {
-                                    style::Button::GameListEntryTitleFailed
-                                })
-                                .width(Length::Fill)
-                                .padding(2),
+                            } else if !operating {
+                                match scan_kind {
+                                    ScanKind::Backup => Some(Message::Backup(BackupPhase::Start {
+                                        preview: true,
+                                        repair: false,
+                                        jump: false,
+                                        games: Some(GameSelection::single(self.scan_info.game_name.clone())),
+                                    })),
+                                    ScanKind::Restore => Some(Message::Restore(RestorePhase::Start {
+                                        preview: true,
+                                        games: Some(GameSelection::single(self.scan_info.game_name.clone())),
+                                    })),
+                                }
+                            } else {
+                                None
+                            })
+                            .class(if !self.scanned {
+                                style::Button::GameListEntryTitleUnscanned
+                            } else if !enabled || all_items_ignored {
+                                style::Button::GameListEntryTitleDisabled
+                            } else if successful {
+                                style::Button::GameListEntryTitle
+                            } else {
+                                style::Button::GameListEntryTitleFailed
+                            })
+                            .width(Length::Fill)
+                            .padding(2),
                         )
                         .push(match changes {
                             ScanChange::New => Some(Badge::new_entry().faded(!enabled).view()),
@@ -447,6 +452,32 @@ impl GameList {
                         config.scan.show_deselected_games,
                         self.manifests(manifest),
                     )
+                })
+                .push({
+                    let visible = self
+                        .entries
+                        .iter()
+                        .filter(|entry| {
+                            self.filter_game(entry, scan_kind, config, manifest, duplicate_detector, duplicatees)
+                        })
+                        .count();
+
+                    // Without this, a fresh install just shows a blank page.
+                    (visible == 0).then(|| {
+                        Container::new(
+                            text(if self.entries.is_empty() {
+                                match scan_kind {
+                                    ScanKind::Backup => TRANSLATOR.no_games_scanned_yet(),
+                                    ScanKind::Restore => TRANSLATOR.no_backups_yet(),
+                                }
+                            } else {
+                                TRANSLATOR.no_games_match_filter()
+                            })
+                            .size(16),
+                        )
+                        .padding(30)
+                        .center_x(Length::Fill)
+                    })
                 })
                 .push({
                     let content = self

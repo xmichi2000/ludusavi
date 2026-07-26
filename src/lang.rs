@@ -558,12 +558,44 @@ impl Translator {
         translate("field-dashboard-unknown-saves")
     }
 
+    pub fn dashboard_health_good(&self) -> String {
+        translate("label-dashboard-health-good")
+    }
+
+    pub fn dashboard_health_stale(&self) -> String {
+        translate("label-dashboard-health-stale")
+    }
+
+    pub fn dashboard_health_missing(&self) -> String {
+        translate("label-dashboard-health-missing")
+    }
+
     pub fn dashboard_on(&self) -> String {
         translate("label-dashboard-on")
     }
 
     pub fn dashboard_off(&self) -> String {
         translate("label-dashboard-off")
+    }
+
+    pub fn no_games_scanned_yet(&self) -> String {
+        translate("label-no-games-scanned-yet")
+    }
+
+    pub fn no_backups_yet(&self) -> String {
+        translate("label-no-backups-yet")
+    }
+
+    pub fn no_games_match_filter(&self) -> String {
+        translate("label-no-games-match-filter")
+    }
+
+    pub fn automatic_backups_field(&self) -> String {
+        translate("field-automatic-backups")
+    }
+
+    pub fn interface_field(&self) -> String {
+        translate("field-interface")
     }
 
     pub fn unknown_saves_scanning(&self) -> String {
