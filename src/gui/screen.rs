@@ -93,6 +93,7 @@ impl Backup {
         operation: &Operation,
         histories: &TextHistories,
         modifiers: &keyboard::Modifiers,
+        menu_for: Option<&String>,
     ) -> Element {
         let sort = &config.backup.sort;
 
@@ -153,6 +154,7 @@ impl Backup {
                 operation,
                 histories,
                 modifiers,
+                menu_for,
             ));
 
         template(content)
@@ -182,6 +184,7 @@ impl Restore {
         operation: &Operation,
         histories: &TextHistories,
         modifiers: &keyboard::Modifiers,
+        menu_for: Option<&String>,
     ) -> Element {
         let sort = &config.restore.sort;
 
@@ -243,6 +246,7 @@ impl Restore {
                 operation,
                 histories,
                 modifiers,
+                menu_for,
             ));
 
         template(content)

@@ -61,6 +61,7 @@ impl GameListEntry {
         expanded: bool,
         modifiers: &Modifiers,
         filtering_duplicates: bool,
+        menu_requested: bool,
     ) -> Container {
         let successful = match &self.backup_info {
             Some(x) => x.successful(),
@@ -328,6 +329,7 @@ impl GameListEntry {
                                             }
                                         })
                                         .width(49)
+                                        .requested_open(menu_requested)
                                         .class(style::PickList::Popup);
                                         Container::new(menu)
                                     }
@@ -388,6 +390,36 @@ impl GameListEntry {
         )
         .id(name)
         .class(style::Container::GameListEntry)
+    }
+
+    /// The row, with a right click anywhere on it opening the game's menu.
+    fn view_with_menu(
+        &self,
+        scan_kind: ScanKind,
+        config: &Config,
+        manifest: &Manifest,
+        duplicate_detector: &DuplicateDetector,
+        operation: &Operation,
+        expanded: bool,
+        modifiers: &Modifiers,
+        filtering_duplicates: bool,
+        menu_requested: bool,
+    ) -> iced::Element<'_, Message, style::Theme> {
+        let game = self.scan_info.game_name.clone();
+
+        iced::widget::mouse_area(self.view(
+            scan_kind,
+            config,
+            manifest,
+            duplicate_detector,
+            operation,
+            expanded,
+            modifiers,
+            filtering_duplicates,
+            menu_requested,
+        ))
+        .on_right_press(Message::OpenGameMenu { game: Some(game) })
+        .into()
     }
 
     /// One entry per restore point, oldest first, with the selected one highlighted.
@@ -488,6 +520,7 @@ impl GameList {
         operation: &Operation,
         histories: &TextHistories,
         modifiers: &Modifiers,
+        menu_for: Option<&String>,
     ) -> Container {
         Container::new(
             Column::new()
@@ -556,7 +589,7 @@ impl GameList {
                                 .padding(padding::bottom(5).left(15).right(15))
                                 .spacing(4),
                             |parent, x| {
-                                parent.push(x.view(
+                                parent.push(x.view_with_menu(
                                     scan_kind,
                                     config,
                                     manifest,
@@ -565,6 +598,7 @@ impl GameList {
                                     self.expanded_games.contains(&x.scan_info.game_name),
                                     modifiers,
                                     duplicatees.is_some(),
+                                    menu_for == Some(&x.scan_info.game_name),
                                 ))
                             },
                         );

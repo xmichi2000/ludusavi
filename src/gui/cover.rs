@@ -1,4 +1,4 @@
-﻿//! Cover art for games, taken from what is already on your computer.
+//! Cover art for games, taken from what is already on your computer.
 //!
 //! Steam stores cover images for your games in its own cache,
 //! so we can reuse those instead of downloading anything.
@@ -89,10 +89,14 @@ fn game_executable(config: &Config, manifest: &Manifest, game: &str) -> Option<S
 }
 
 /// An icon taken from the game's own program, saved next to our other data.
+///
+/// This deliberately does not use the cover file name. An icon is a stand-in,
+/// not a cover, and storing it as one would make the game look resolved
+/// so that a real cover would never be fetched.
 fn executable_icon(config: &Config, manifest: &Manifest, game: &str) -> Option<StrictPath> {
     let target = crate::prelude::app_dir()
         .joined("covers")
-        .joined(format!("{}.png", crate::scan::layout::escape_folder_name(game)));
+        .joined(format!("{}.icon.png", crate::scan::layout::escape_folder_name(game)));
     if target.is_file() {
         return Some(target);
     }

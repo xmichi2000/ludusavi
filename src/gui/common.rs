@@ -211,6 +211,10 @@ pub enum Message {
     },
     FindUnknownSaves,
     FoundUnknownSaves(Vec<UnknownSaveCandidate>),
+    /// Right-clicking a row asks for that game's menu.
+    OpenGameMenu {
+        game: Option<String>,
+    },
     FetchCovers,
     FetchedCovers {
         /// Whether anything was found, so the list can refresh.

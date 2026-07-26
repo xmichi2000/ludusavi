@@ -102,6 +102,8 @@ pub struct App {
     dashboard_screen: screen::Dashboard,
     /// Whether a batch of covers is being looked up right now.
     fetching_covers: bool,
+    /// The game whose menu a right click asked for.
+    game_menu_for: Option<String>,
     operation_should_cancel: std::sync::Arc<std::sync::atomic::AtomicBool>,
     operation_steps: Vec<OperationStep>,
     operation_steps_active: usize,
@@ -3127,6 +3129,10 @@ impl App {
                     Message::FoundUnknownSaves,
                 )
             }
+            Message::OpenGameMenu { game } => {
+                self.game_menu_for = game;
+                Task::none()
+            }
             Message::FetchCovers => {
                 if !self.config.covers.show || !self.config.covers.download || self.fetching_covers {
                     return Task::none();
@@ -3378,6 +3384,7 @@ impl App {
                     &self.operation,
                     &self.text_histories,
                     &self.modifiers,
+                    self.game_menu_for.as_ref(),
                 ),
                 Screen::Restore => self.restore_screen.view(
                     &self.config,
@@ -3385,6 +3392,7 @@ impl App {
                     &self.operation,
                     &self.text_histories,
                     &self.modifiers,
+                    self.game_menu_for.as_ref(),
                 ),
                 Screen::CustomGames => self.custom_games_screen.view(
                     &self.config,

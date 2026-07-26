@@ -35,6 +35,8 @@ where
     style: <Theme as Catalog>::Class<'a>,
     menu_style: <Theme as menu::Catalog>::Class<'a>,
     last_status: Option<Status>,
+    /// Lets the surrounding row open this menu, such as on a right click.
+    requested_open: bool,
 }
 
 impl<'a, T: 'a, Message, Theme, Renderer> PopupMenu<'a, T, Message, Theme, Renderer>
@@ -60,7 +62,15 @@ where
             style: <Theme as Catalog>::default(),
             menu_style: <Theme as menu::Catalog>::default(),
             last_status: None,
+            requested_open: false,
         }
+    }
+
+    /// Opens the menu when something outside of it asks for that,
+    /// so that a right click anywhere on a row can bring it up.
+    pub fn requested_open(mut self, requested: bool) -> Self {
+        self.requested_open = requested;
+        self
     }
 
     /// Sets the width of the [`PopupMenu`].
@@ -141,6 +151,17 @@ where
         _viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_mut::<State<T>>();
+
+        // Something outside of the menu, such as a right click on the row, asked for it.
+        if self.requested_open {
+            if !state.honored_request {
+                state.honored_request = true;
+                state.is_open = !self.options.is_empty();
+                shell.invalidate_layout();
+            }
+        } else {
+            state.honored_request = false;
+        }
 
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
@@ -332,6 +353,8 @@ where
 pub struct State<T> {
     menu: menu::State,
     is_open: bool,
+    /// Whether we already acted on the current outside request.
+    honored_request: bool,
     hovered_option: Option<usize>,
     last_selection: Option<T>,
 }
@@ -342,6 +365,7 @@ impl<T> State<T> {
         Self {
             menu: menu::State::default(),
             is_open: bool::default(),
+            honored_request: false,
             hovered_option: Option::default(),
             last_selection: Option::default(),
         }
