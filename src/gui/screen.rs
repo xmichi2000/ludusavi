@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+﻿use std::collections::HashSet;
 
 use iced::{Alignment, Length, keyboard, padding};
 
@@ -349,13 +349,13 @@ impl Dashboard {
         fn card<'a>(value: String, caption: String) -> Container<'a> {
             Container::new(
                 Column::new()
-                    .padding(10)
-                    .spacing(5)
+                    .padding(16)
+                    .spacing(8)
                     .align_x(Alignment::Center)
                     .push(text(value).size(28))
                     .push(text(caption).size(13)),
             )
-            .center_x(180)
+            .center_x(200.0)
             .class(style::Container::GameListEntry)
         }
 

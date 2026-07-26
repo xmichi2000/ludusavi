@@ -25,6 +25,36 @@ const IGDB_API: &str = "https://api.igdb.com/v4";
 /// Don't keep anything that clearly isn't an image.
 const MIN_BYTES: usize = 1024;
 
+/// Covers are stored in portrait, so that the game list keeps one shape.
+/// See docs/design-system.md.
+const ASPECT_WIDTH: u32 = 2;
+const ASPECT_HEIGHT: u32 = 3;
+
+/// Make an image portrait by cropping the middle out of it,
+/// rather than squeezing it into shape.
+fn to_portrait(image: image::DynamicImage) -> image::DynamicImage {
+    let (width, height) = (image.width(), image.height());
+    if width == 0 || height == 0 {
+        return image;
+    }
+
+    let wanted_width = height * ASPECT_WIDTH / ASPECT_HEIGHT;
+    if width > wanted_width {
+        // Too wide, such as a Steam header image: take the centre.
+        let x = (width - wanted_width) / 2;
+        return image.crop_imm(x, 0, wanted_width, height);
+    }
+
+    let wanted_height = width * ASPECT_HEIGHT / ASPECT_WIDTH;
+    if height > wanted_height {
+        // Too tall: take the middle, favoring the upper part where art usually is.
+        let y = (height - wanted_height) / 3;
+        return image.crop_imm(0, y, width, wanted_height);
+    }
+
+    image
+}
+
 /// Where we keep the cover for a game.
 /// Everything is stored as PNG, whatever format it arrived in.
 pub fn cached_path(game: &str) -> StrictPath {
@@ -44,6 +74,24 @@ fn missing_marker(game: &str) -> StrictPath {
 /// Whether we already know the answer for this game, one way or the other.
 pub fn is_resolved(game: &str) -> bool {
     cached_path(game).is_file() || missing_marker(game).is_file()
+}
+
+/// Take a cover that's already on this computer into our own cache,
+/// cropped to portrait like everything else, so the list stays consistent.
+pub fn adopt_local(game: &str, source: &StrictPath) -> Option<StrictPath> {
+    if let Some(cached) = cached(game) {
+        return Some(cached);
+    }
+
+    let image = image::open(source.as_std_path_buf().ok()?).ok()?;
+
+    let target = cached_path(game);
+    target.parent()?.create_dirs().ok()?;
+    to_portrait(image)
+        .save_with_format(target.as_std_path_buf().ok()?, image::ImageFormat::Png)
+        .ok()?;
+
+    Some(target)
 }
 
 /// The cover we have on hand for a game, if any.
@@ -329,7 +377,7 @@ pub async fn fetch(config: &Config, manifest: &Manifest, game: &str) -> Option<S
         if target.parent().map(|x| x.create_dirs().is_err()).unwrap_or(true) {
             return None;
         }
-        if image
+        if to_portrait(image)
             .save_with_format(target.as_std_path_buf().ok()?, image::ImageFormat::Png)
             .is_ok()
         {

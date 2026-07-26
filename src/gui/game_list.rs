@@ -1,4 +1,4 @@
-﻿use std::collections::{BTreeSet, HashSet};
+use std::collections::{BTreeSet, HashSet};
 
 use iced::{
     Alignment, Length, alignment::Horizontal as HorizontalAlignment, keyboard::Modifiers, padding, widget::tooltip,
@@ -32,6 +32,11 @@ use crate::{
         BackupInfo, DuplicateDetector, OperationStatus, ScanChange, ScanInfo, ScanKind, game_filter, layout::GameLayout,
     },
 };
+
+/// The cover slot, in portrait like the covers themselves.
+/// See docs/design-system.md.
+const COVER_WIDTH: f32 = 40.0;
+const COVER_HEIGHT: f32 = 56.0;
 
 #[derive(Default)]
 pub struct GameListEntry {
@@ -74,12 +79,14 @@ impl GameListEntry {
 
         Container::new(
             Column::new()
-                .padding(5)
-                .spacing(5)
-                .align_x(Alignment::Center)
+                .padding(16)
+                .spacing(16)
                 .push(
+                    // Fixed height and a fixed cover slot, so the list keeps one rhythm.
+                    // See docs/design-system.md.
                     Row::new()
-                        .spacing(15)
+                        .spacing(8)
+                        .height(COVER_HEIGHT)
                         .align_y(Alignment::Center)
                         .push({
                             let name = name.clone();
@@ -95,57 +102,50 @@ impl GameListEntry {
                             .spacing(0)
                             .class(style::Checkbox)
                         })
-                        .push({
-                            config
-                                .covers
-                                .show
-                                .then(|| crate::gui::cover::find(config, manifest, &name))
-                                .flatten()
-                                .map(|cover| {
-                                    iced::widget::image(cover.render())
-                                        .width(32)
-                                        .height(48)
-                                        .content_fit(iced::ContentFit::Contain)
-                                })
+                        .push_if(config.covers.show, || {
+                            // The slot is always there, even when empty, to keep one left edge.
+                            Container::new(crate::gui::cover::find(config, manifest, &name).map(|cover| {
+                                iced::widget::image(cover.render()).content_fit(iced::ContentFit::Contain)
+                            }))
+                            .width(COVER_WIDTH)
+                            .height(COVER_HEIGHT)
+                            .center_x(COVER_WIDTH)
+                            .center_y(COVER_HEIGHT)
                         })
                         .push(
-                            // Slightly larger than the metadata around it, to lead the eye.
-                            Button::new(
-                                text(display_name.to_string())
-                                    .size(16)
-                                    .align_x(HorizontalAlignment::Center),
-                            )
-                            .on_press_maybe(if self.scanned {
-                                Some(Message::ToggleGameListEntryExpanded {
-                                    name: self.scan_info.game_name.clone(),
+                            // Left-aligned, so titles form a stable reading edge.
+                            Button::new(text(display_name.to_string()).size(16))
+                                .on_press_maybe(if self.scanned {
+                                    Some(Message::ToggleGameListEntryExpanded {
+                                        name: self.scan_info.game_name.clone(),
+                                    })
+                                } else if !operating {
+                                    match scan_kind {
+                                        ScanKind::Backup => Some(Message::Backup(BackupPhase::Start {
+                                            preview: true,
+                                            repair: false,
+                                            jump: false,
+                                            games: Some(GameSelection::single(self.scan_info.game_name.clone())),
+                                        })),
+                                        ScanKind::Restore => Some(Message::Restore(RestorePhase::Start {
+                                            preview: true,
+                                            games: Some(GameSelection::single(self.scan_info.game_name.clone())),
+                                        })),
+                                    }
+                                } else {
+                                    None
                                 })
-                            } else if !operating {
-                                match scan_kind {
-                                    ScanKind::Backup => Some(Message::Backup(BackupPhase::Start {
-                                        preview: true,
-                                        repair: false,
-                                        jump: false,
-                                        games: Some(GameSelection::single(self.scan_info.game_name.clone())),
-                                    })),
-                                    ScanKind::Restore => Some(Message::Restore(RestorePhase::Start {
-                                        preview: true,
-                                        games: Some(GameSelection::single(self.scan_info.game_name.clone())),
-                                    })),
-                                }
-                            } else {
-                                None
-                            })
-                            .class(if !self.scanned {
-                                style::Button::GameListEntryTitleUnscanned
-                            } else if !enabled || all_items_ignored {
-                                style::Button::GameListEntryTitleDisabled
-                            } else if successful {
-                                style::Button::GameListEntryTitle
-                            } else {
-                                style::Button::GameListEntryTitleFailed
-                            })
-                            .width(Length::Fill)
-                            .padding(2),
+                                .class(if !self.scanned {
+                                    style::Button::GameListEntryTitleUnscanned
+                                } else if !enabled || all_items_ignored {
+                                    style::Button::GameListEntryTitleDisabled
+                                } else if successful {
+                                    style::Button::GameListEntryTitle
+                                } else {
+                                    style::Button::GameListEntryTitleFailed
+                                })
+                                .width(Length::Fill)
+                                .padding(2),
                         )
                         .push(match changes {
                             ScanChange::New => Some(Badge::new_entry().faded(!enabled).view()),

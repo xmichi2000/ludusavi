@@ -48,7 +48,8 @@ fn steam_cover(config: &Config, manifest: &Manifest, game: &str) -> Option<Stric
                 .joined(steam_id.to_string())
                 .joined(candidate);
             if path.is_file() {
-                return Some(path);
+                // Bring it into our cache so that every cover has the same shape.
+                return ludusavi::cover::adopt_local(game, &path).or(Some(path));
             }
         }
     }
